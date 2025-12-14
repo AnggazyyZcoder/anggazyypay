@@ -1,456 +1,415 @@
-// Initialize the application when DOM is loaded
+// Inisialisasi
 document.addEventListener('DOMContentLoaded', function() {
-    // Loading screen functionality
-    const loadingScreen = document.getElementById('loading-screen');
-    
-    // Hide loading screen after 3 seconds
+    // Simpan QRIS utama di localStorage
+    const qrisUtama = '00020101021126610014COM.GO-JEK.WWW01189360091438478660180210G8478660180303UMI51440014ID.CO.QRIS.WWW0215ID10254635735230303UMI5204581653033605802ID5912Anggazyy Pay6008MINAHASA61059566162070703A0163041DD9';
+    localStorage.setItem('QRIS_Utama', qrisUtama);
+
+    // Loading Screen
+    const loadingScreen = document.getElementById('loadingScreen');
     setTimeout(() => {
+        loadingScreen.style.transition = 'opacity 0.8s ease';
         loadingScreen.style.opacity = '0';
-        loadingScreen.style.visibility = 'hidden';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Animasi fade in untuk konten
+            document.querySelectorAll('.animate__animated').forEach(el => {
+                el.style.opacity = '1';
+            });
+        }, 800);
     }, 3000);
 
-    // Initialize all components
-    initSmoothScroll();
-    initStatsCounter();
-    initPaymentToggles();
+    // Initialize components
+    initPaymentCards();
+    initQRIS();
+    initStats();
     initCopyButtons();
-    initQRISFunctionality();
-    initNavigation();
-    initDarkModeToggle();
-    initToastNotifications();
-    
-    // Start transaction button
-    document.getElementById('start-transaction').addEventListener('click', function() {
-        document.getElementById('payment').scrollIntoView({ behavior: 'smooth' });
-        
-        // Open first payment method
-        const firstPayment = document.querySelector('.payment-header');
-        if (firstPayment && !firstPayment.classList.contains('active')) {
-            togglePaymentDetails(firstPayment);
-        }
+    initScrollAnimations();
+
+    // Event listener untuk tombol "Mulai Bertransaksi"
+    document.getElementById('startBtn').addEventListener('click', function() {
+        document.getElementById('paymentSection').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+        // Tambah efek animasi
+        this.classList.add('animate__pulse');
+        setTimeout(() => this.classList.remove('animate__pulse'), 1000);
     });
 });
 
-// Smooth scrolling for anchor links
-function initSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-            
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-}
-
-// Animated stats counter
-function initStatsCounter() {
-    const statNumbers = document.querySelectorAll('.stat-number');
+// Payment Cards Toggle
+function initPaymentCards() {
+    const paymentCards = document.querySelectorAll('.payment-card');
     
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const statNumber = entry.target;
-                const target = parseInt(statNumber.getAttribute('data-count'));
-                const isDecimal = target.toString().includes('.');
-                
-                animateCounter(statNumber, target, isDecimal ? 1000 : 2000);
-                observer.unobserve(statNumber);
-            }
-        });
-    }, { threshold: 0.5 });
-    
-    statNumbers.forEach(stat => observer.observe(stat));
-}
-
-function animateCounter(element, target, duration) {
-    const start = 0;
-    const increment = target / (duration / 16); // 60fps
-    let current = start;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-            element.textContent = target.toFixed(1);
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current).toLocaleString();
-        }
-    }, 16);
-}
-
-// Payment details toggle functionality
-function initPaymentToggles() {
-    const paymentHeaders = document.querySelectorAll('.payment-header');
-    
-    paymentHeaders.forEach(header => {
+    paymentCards.forEach(card => {
+        const header = card.querySelector('.payment-header');
+        const toggleIcon = card.querySelector('.toggle-icon');
+        
         header.addEventListener('click', function() {
-            togglePaymentDetails(this);
-        });
-        
-        // Add close button functionality
-        const closeBtn = header.nextElementSibling.querySelector('.close-details');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                togglePaymentDetails(header);
-            });
-        }
-    });
-}
-
-function togglePaymentDetails(header) {
-    const details = header.nextElementSibling;
-    const icon = header.querySelector('.toggle-details');
-    
-    if (details.classList.contains('active')) {
-        details.classList.remove('active');
-        header.classList.remove('active');
-        icon.style.transform = 'rotate(0deg)';
-    } else {
-        // Close all other open payments
-        document.querySelectorAll('.payment-details.active').forEach(activeDetail => {
-            activeDetail.classList.remove('active');
-            activeDetail.previousElementSibling.classList.remove('active');
-            activeDetail.previousElementSibling.querySelector('.toggle-details').style.transform = 'rotate(0deg)';
-        });
-        
-        details.classList.add('active');
-        header.classList.add('active');
-        icon.style.transform = 'rotate(180deg)';
-        
-        // Special handling for QRIS
-        if (header.getAttribute('data-method') === 'qris') {
-            initQRISFlow();
-        }
-    }
-}
-
-// Copy buttons functionality
-function initCopyButtons() {
-    document.querySelectorAll('.copy-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const textToCopy = this.getAttribute('data-text') || 
-                              this.parentElement.querySelector('span').textContent;
+            const isActive = card.classList.contains('active');
             
-            copyToClipboard(textToCopy);
-            showToast('Teks berhasil disalin ke clipboard!');
+            // Tutup semua card lainnya
+            paymentCards.forEach(c => {
+                if (c !== card) {
+                    c.classList.remove('active');
+                    c.querySelector('.toggle-icon').style.transform = 'rotate(0deg)';
+                }
+            });
+            
+            // Toggle card saat ini
+            card.classList.toggle('active');
+            
+            if (card.classList.contains('active')) {
+                toggleIcon.style.transform = 'rotate(180deg)';
+                toggleIcon.style.color = '#00FFAA';
+                
+                // Jika QRIS card dibuka
+                if (card.dataset.method === 'qris') {
+                    const qrisContainer = card.querySelector('.qris-container');
+                    qrisContainer.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <i class="fas fa-qrcode" style="font-size: 3rem; color: #00FFAA; margin-bottom: 15px;"></i>
+                            <p style="color: #A0A6D0; margin-bottom: 20px;">Klik tombol di bawah untuk generate QRIS dinamis</p>
+                            <button class="btn-qris" id="openQRISModal">
+                                <i class="fas fa-bolt"></i>
+                                <span>Buka QRIS Generator</span>
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('openQRISModal').addEventListener('click', openQRISModal);
+                }
+            } else {
+                toggleIcon.style.transform = 'rotate(0deg)';
+                toggleIcon.style.color = '';
+            }
         });
     });
 }
 
-function copyToClipboard(text) {
-    const tempInput = document.createElement('input');
-    tempInput.value = text;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand('copy');
-    document.body.removeChild(tempInput);
+// QRIS System
+let currentQRData = null;
+let payAmount = 0;
+let countdownInterval = null;
+let currentTrxId = '';
+
+function initQRIS() {
+    // Event listener untuk modal QRIS
+    document.getElementById('closeQRISModal').addEventListener('click', closeQRISModal);
+    document.getElementById('confirmAmountBtn').addEventListener('click', confirmAmount);
+    document.getElementById('downloadQRBtn').addEventListener('click', downloadQR);
+    document.getElementById('copyTrxId').addEventListener('click', copyTrxId);
+    
+    // Update link WhatsApp dengan ID transaksi
+    const paidBtn = document.getElementById('paidBtn');
+    paidBtn.addEventListener('click', function(e) {
+        const message = `Halo saya sudah melakukan pembayaran dengan ID transaksi: ${currentTrxId}`;
+        this.href = `https://wa.me/62882020034316?text=${encodeURIComponent(message)}`;
+    });
 }
 
-// QRIS functionality
-function initQRISFunctionality() {
-    // QRIS specific initialization
-    const qrisHeader = document.querySelector('.payment-header[data-method="qris"]');
-    if (qrisHeader) {
-        qrisHeader.addEventListener('click', function() {
-            // Already handled in togglePaymentDetails
-        });
-    }
+function openQRISModal() {
+    const modal = document.getElementById('qrisModal');
+    modal.style.display = 'flex';
     
-    // Generate QRIS button
-    const generateBtn = document.getElementById('generate-qris');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', generateQRIS);
-    }
+    // Reset state
+    document.getElementById('qrisLoading').style.display = 'flex';
+    document.getElementById('qrisInput').style.display = 'none';
+    document.getElementById('qrisResult').style.display = 'none';
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('merchantDisplay').style.display = 'none';
     
-    // I have paid button
-    const paidBtn = document.getElementById('i-have-paid');
-    if (paidBtn) {
-        paidBtn.addEventListener('click', function() {
-            window.open('https://wa.me/62882020034316', '_blank');
-        });
-    }
-    
-    // Download QRIS button
-    const downloadBtn = document.getElementById('download-qris');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadQRIS);
-    }
-    
-    // Copy transaction ID button
-    const copyTrxBtn = document.getElementById('copy-trx');
-    if (copyTrxBtn) {
-        copyTrxBtn.addEventListener('click', function() {
-            const trxId = document.getElementById('trx-id').textContent;
-            copyToClipboard(trxId);
-            showToast('ID Transaksi berhasil disalin!');
-        });
-    }
-}
-
-let qrisExpiryTimer = null;
-let currentTrxId = null;
-
-function initQRISFlow() {
-    const qrisInput = document.getElementById('qris-input');
-    const qrisLoading = document.getElementById('qris-loading');
-    const qrisResult = document.getElementById('qris-result');
-    
-    // Show loading for 3 seconds
-    qrisLoading.style.display = 'block';
-    qrisInput.style.display = 'none';
-    qrisResult.style.display = 'none';
-    
+    // Tampilkan loading selama 3 detik
     setTimeout(() => {
-        qrisLoading.style.display = 'none';
-        qrisInput.style.display = 'block';
-        
-        // Clear any existing expiry timer
-        if (qrisExpiryTimer) {
-            clearInterval(qrisExpiryTimer);
-            qrisExpiryTimer = null;
-        }
+        document.getElementById('qrisLoading').style.display = 'none';
+        document.getElementById('qrisInput').style.display = 'block';
     }, 3000);
 }
 
-async function generateQRIS() {
-    const amountInput = document.getElementById('qris-amount');
+function closeQRISModal() {
+    const modal = document.getElementById('qrisModal');
+    modal.style.display = 'none';
+    
+    // Hentikan countdown
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+}
+
+function confirmAmount() {
+    const amountInput = document.getElementById('amountInput');
     const amount = parseInt(amountInput.value);
     
-    if (!amount || amount < 10000) {
-        showToast('Masukkan nominal minimal Rp 10,000');
+    if (isNaN(amount) || amount < 10000) {
+        showMessage('Minimal nominal adalah Rp 10.000');
         amountInput.focus();
         return;
     }
     
-    const generateBtn = document.getElementById('generate-qris');
-    const qrisInput = document.getElementById('qris-input');
-    const qrisResult = document.getElementById('qris-result');
+    payAmount = amount;
     
-    // Show loading state
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-    generateBtn.disabled = true;
+    // Tampilkan loading
+    document.getElementById('qrisInput').style.display = 'none';
+    document.getElementById('qrisLoading').style.display = 'flex';
+    document.getElementById('qrisLoading').querySelector('.loading-text').textContent = 'Mengirim permintaan ke API...';
     
-    try {
-        // Generate random transaction ID
-        currentTrxId = 'TRX-' + Math.floor(1000 + Math.random() * 9000);
-        document.getElementById('trx-id').textContent = currentTrxId;
-        
-        // Prepare API request data
-        const qrisData = {
-            amount: amount.toString(),
-            qris_statis: "00020101021126610014COM.GO-JEK.WWW01189360091438478660180210G8478660180303UMI51440014ID.CO.QRIS.WWW0215ID10254635735230303UMI5204581653033605802ID5912Anggazyy Pay6008MINAHASA61059566162070703A0163041DD9"
-        };
-        
-        // Make API call to QRIS generator
-        const response = await fetch('https://qrisku.my.id/api', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(qrisData)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
+    // Generate ID transaksi
+    currentTrxId = 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    document.getElementById('trxId').textContent = currentTrxId;
+    
+    // Simulasi API call selama 3 detik
+    setTimeout(async () => {
+        try {
+            await generateQRIS();
+        } catch (error) {
+            showMessage('Gagal generate QRIS: ' + error.message);
         }
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            // Convert base64 to image
-            const qrisImage = document.getElementById('qris-image');
-            qrisImage.src = 'data:image/png;base64,' + data.qris_base64;
-            
-            // Show result section
-            qrisInput.style.display = 'none';
-            qrisResult.style.display = 'block';
-            
-            // Start expiry timer (5 minutes)
-            startExpiryTimer(5 * 60);
-            
-            showToast('QRIS berhasil digenerate!');
-        } else {
-            throw new Error(data.message || 'Gagal generate QRIS');
-        }
-    } catch (error) {
-        console.error('Error generating QRIS:', error);
-        showToast('Gagal generate QRIS. Silakan coba lagi.');
-    } finally {
-        // Reset button state
-        generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> Generate QRIS';
-        generateBtn.disabled = false;
-    }
-}
-
-function startExpiryTimer(seconds) {
-    const timerElement = document.getElementById('expiry-timer');
-    const qrisResult = document.getElementById('qris-result');
-    const qrisInput = document.getElementById('qris-input');
-    
-    let remainingSeconds = seconds;
-    
-    // Clear any existing timer
-    if (qrisExpiryTimer) {
-        clearInterval(qrisExpiryTimer);
-    }
-    
-    // Update timer immediately
-    updateTimerDisplay(timerElement, remainingSeconds);
-    
-    // Start countdown
-    qrisExpiryTimer = setInterval(() => {
-        remainingSeconds--;
-        updateTimerDisplay(timerElement, remainingSeconds);
-        
-        if (remainingSeconds <= 0) {
-            clearInterval(qrisExpiryTimer);
-            qrisExpiryTimer = null;
-            
-            // Hide QRIS result and show input again
-            qrisResult.style.display = 'none';
-            qrisInput.style.display = 'block';
-            
-            // Clear QRIS image
-            document.getElementById('qris-image').src = '';
-            
-            // Clear amount input
-            document.getElementById('qris-amount').value = '';
-            
-            showToast('QRIS telah expired. Silakan generate ulang.');
-        }
-    }, 1000);
-}
-
-function updateTimerDisplay(element, seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    element.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
-function downloadQRIS() {
-    const qrisImage = document.getElementById('qris-image');
-    const trxId = document.getElementById('trx-id').textContent;
-    
-    if (!qrisImage.src) {
-        showToast('Tidak ada QRIS untuk diunduh');
-        return;
-    }
-    
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = qrisImage.src;
-    link.download = `QRIS-${trxId}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showToast('QRIS berhasil diunduh!');
-}
-
-// Navigation functionality
-function initNavigation() {
-    const sections = document.querySelectorAll('section');
-    const navLinks = document.querySelectorAll('.nav-links a');
-    
-    // Highlight active section in navigation
-    window.addEventListener('scroll', () => {
-        let current = '';
-        const scrollPosition = window.scrollY + 100;
-        
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.clientHeight;
-            
-            if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-                current = section.getAttribute('id');
-            }
-        });
-        
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${current}`) {
-                link.classList.add('active');
-            }
-        });
-    });
-}
-
-// Dark mode toggle (just for show in this case since theme is dark)
-function initDarkModeToggle() {
-    const toggleBtn = document.querySelector('.dark-mode-toggle');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', function() {
-            const icon = this.querySelector('i');
-            const isDark = icon.classList.contains('fa-moon');
-            
-            if (isDark) {
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
-                showToast('Mode terang diaktifkan (simulasi)');
-            } else {
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
-                showToast('Mode gelap diaktifkan');
-            }
-            
-            // Add a quick animation
-            this.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 300);
-        });
-    }
-}
-
-// Toast notifications
-function initToastNotifications() {
-    // Function is defined below as showToast
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
-    
-    toastMessage.textContent = message;
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
     }, 3000);
 }
 
-// Add fade-in animation on scroll
-const fadeElements = document.querySelectorAll('.fade-in');
-const fadeObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.animationPlayState = 'running';
-            fadeObserver.unobserve(entry.target);
+// QRIS API Function
+async function qris(id, harga) {
+    try {
+        const response = await fetch(`https://api-mininxd.vercel.app/qris?qris=${encodeURIComponent(id)}&nominal=${harga}`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        return await response.json();
+    } catch(e) {
+        console.error('API Error:', e);
+        return { 
+            qr: 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(id),
+            merchant: 'Anggazyy Pay'
+        };
+    }
+}
+
+// Generate QRIS
+async function generateQRIS() {
+    const qrisUtama = localStorage.getItem('QRIS_Utama');
+    
+    try {
+        // Format currency
+        document.getElementById('amountDisplay').textContent = formatCurrency(payAmount);
+        
+        // Panggil API QRIS
+        const data = await qris(qrisUtama, payAmount);
+        
+        if (!data) {
+            throw new Error('Tidak ada data dari API');
+        }
+        
+        // Ambil string QR dari respons API
+        const qrString = data.QR || data.qr || data.qris || qrisUtama;
+        currentQRData = qrString;
+        
+        // Tampilkan nama merchant jika ada
+        if (data.merchant) {
+            document.getElementById('displayMerchantName').textContent = data.merchant;
+            document.getElementById('merchantDisplay').style.display = 'flex';
+        }
+        
+        // Render QR Code menggunakan library QRCode
+        const qrContainer = document.getElementById('qrContainer');
+        qrContainer.innerHTML = '';
+        
+        QRCode.toCanvas(qrContainer, qrString, {
+            width: 240,
+            margin: 2,
+            color: {
+                dark: '#1A1D3D',
+                light: '#FFFFFF'
+            },
+            errorCorrectionLevel: 'H'
+        }, function(error) {
+            if (error) {
+                console.error('QR Code Error:', error);
+                qrContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #FF6B8B;"></i>
+                        <p style="color: #A0A6D0; margin-top: 15px;">Gagal membuat QR Code</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Tampilkan hasil
+        document.getElementById('qrisLoading').style.display = 'none';
+        document.getElementById('qrisResult').style.display = 'block';
+        document.getElementById('actionButtons').style.display = 'grid';
+        
+        // Mulai countdown 5 menit
+        startCountdown(5 * 60); // 5 menit dalam detik
+        
+    } catch (error) {
+        console.error('Generate QRIS Error:', error);
+        document.getElementById('qrisLoading').style.display = 'none';
+        document.getElementById('qrisResult').innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #FF6B8B; margin-bottom: 20px;"></i>
+                <p style="color: #A0A6D0; margin-bottom: 15px;">Gagal membuat QR Code</p>
+                <p style="color: #FF6B8B; font-size: 0.9rem;">${error.message}</p>
+                <button onclick="confirmAmount()" class="btn-generate" style="margin-top: 20px;">
+                    <i class="fas fa-redo"></i>
+                    <span>Coba Lagi</span>
+                </button>
+            </div>
+        `;
+        showMessage('Terjadi kesalahan: ' + error.message);
+    }
+}
+
+function startCountdown(seconds) {
+    const timerElement = document.getElementById('countdownTimer');
+    let remaining = seconds;
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    
+    countdownInterval = setInterval(() => {
+        const minutes = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            showMessage('QRIS telah kedaluwarsa!');
+            closeQRISModal();
+        }
+        
+        remaining--;
+    }, 1000);
+}
+
+function downloadQR() {
+    if (!currentQRData) {
+        showMessage('Tidak ada QR Code untuk didownload');
+        return;
+    }
+    
+    const canvas = document.querySelector('#qrContainer canvas');
+    if (!canvas) {
+        showMessage('Canvas QR Code tidak ditemukan');
+        return;
+    }
+    
+    const link = document.createElement('a');
+    link.download = `QRIS-AnggazyyPay-${currentTrxId}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showMessage('QRIS berhasil didownload!');
+}
+
+function copyTrxId() {
+    navigator.clipboard.writeText(currentTrxId)
+        .then(() => showMessage('ID Transaksi disalin ke clipboard!'))
+        .catch(() => showMessage('Gagal menyalin ID Transaksi'));
+}
+
+// Stats Animation
+function initStats() {
+    // Animasikan angka total transaksi
+    const totalTransactions = document.getElementById('totalTransactions');
+    const totalTestimonials = document.getElementById('totalTestimonials');
+    
+    animateValue(totalTransactions, 0, 400, 2000);
+    animateValue(totalTestimonials, 0, 500, 2000);
+}
+
+function animateValue(element, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        element.textContent = value + (element.id === 'totalTransactions' ? '+' : '+');
+        
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+// Copy Buttons
+function initCopyButtons() {
+    // Salin nomor rekening
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-copy') || e.target.closest('.btn-copy')) {
+            const button = e.target.classList.contains('btn-copy') ? e.target : e.target.closest('.btn-copy');
+            const text = button.dataset.clipboardText;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => showMessage('Nomor rekening disalin ke clipboard!'))
+                .catch(() => showMessage('Gagal menyalin nomor rekening'));
         }
     });
-}, { threshold: 0.1 });
+}
 
-fadeElements.forEach(element => {
-    element.style.animationPlayState = 'paused';
-    fadeObserver.observe(element);
+// Scroll Animations
+function initScrollAnimations() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate__fadeInUp');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    // Amati semua card
+    document.querySelectorAll('.payment-card, .stat-card, .supported-item').forEach(el => {
+        observer.observe(el);
+    });
+}
+
+// Helper Functions
+function formatCurrency(amount) {
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function showMessage(text) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    
+    notificationText.textContent = text;
+    notification.style.display = 'flex';
+    
+    // Reset animation
+    notification.style.animation = 'none';
+    void notification.offsetWidth; // Trigger reflow
+    notification.style.animation = 'slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards';
+    
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+// Close modal ketika klik di luar
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('qrisModal');
+    if (e.target === modal) {
+        closeQRISModal();
+    }
 });
 
-// Add some interactive effects to payment cards
-document.querySelectorAll('.payment-card').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-10px) scale(1.02)';
-    });
-    
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1)';
+// Smooth scroll untuk semua anchor link
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
     });
 });
