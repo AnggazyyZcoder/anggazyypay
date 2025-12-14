@@ -9,14 +9,20 @@ const modalCloseBtn = document.querySelector('.modal-close-btn');
 const menuToggle = document.getElementById('menuToggle');
 const nav = document.querySelector('.nav');
 const navLinks = document.querySelectorAll('.nav-link');
+const historyLink = document.getElementById('historyLink');
+const historyBadge = document.getElementById('historyBadge');
 const qrisCard = document.querySelector('[data-method="qris"]');
 const qrisLoading = document.getElementById('qrisLoading');
 const qrisInput = document.getElementById('qrisInput');
 const qrisResult = document.getElementById('qrisResult');
 const generateQRISBtn = document.getElementById('generateQRIS');
 const qrisAmountInput = document.getElementById('qrisAmount');
+const displayAmount = document.getElementById('displayAmount');
+const feeAmount = document.getElementById('feeAmount');
+const totalAmount = document.getElementById('totalAmount');
 const qrisCanvas = document.getElementById('qrisCanvas');
 const qrisNominal = document.getElementById('qrisNominal');
+const qrisTotal = document.getElementById('qrisTotal');
 const transactionIdElement = document.getElementById('transactionId');
 const copyTrxIdBtn = document.getElementById('copyTrxId');
 const expiryInfo = document.getElementById('expiryInfo');
@@ -24,6 +30,23 @@ const downloadQRISBtn = document.getElementById('downloadQRIS');
 const iHavePaidBtn = document.getElementById('iHavePaid');
 const statNumbers = document.querySelectorAll('.stat-number');
 const fadeElements = document.querySelectorAll('.fade-in');
+
+// History Elements
+const historyList = document.getElementById('historyList');
+const totalTransactions = document.getElementById('totalTransactions');
+const successTransactions = document.getElementById('successTransactions');
+const expiredTransactions = document.getElementById('expiredTransactions');
+const pendingTransactions = document.getElementById('pendingTransactions');
+const filterButtons = document.querySelectorAll('.filter-btn');
+const searchHistory = document.getElementById('searchHistory');
+const clearHistoryBtn = document.getElementById('clearHistory');
+const exportHistoryBtn = document.getElementById('exportHistory');
+const detailModal = document.getElementById('detailModal');
+const transactionDetail = document.getElementById('transactionDetail');
+const closeDetailModal = document.getElementById('closeDetailModal');
+const confirmModal = document.getElementById('confirmModal');
+const cancelClear = document.getElementById('cancelClear');
+const confirmClear = document.getElementById('confirmClear');
 
 // QRIS Configuration
 const QRIS_API_URL = 'https://qris.miraipedia.my.id/api/convert';
@@ -35,10 +58,27 @@ let qrisExpiryTimer = null;
 let currentTransactionId = null;
 let currentQRISData = null;
 let qrCodeInstance = null;
+let transactionHistory = [];
+let transactionChart = null;
+
+// Fee Configuration
+const FEE_CONFIG = {
+    low: { threshold: 10000, feeRate: 0.003 }, // 0.3% untuk 10k - 19,999
+    high: { threshold: 20000, feeRate: 0.007 }  // 0.7% untuk 20k ke atas
+};
 
 // Initialize the website
 function init() {
     console.log('Website Anggazyy Pay dimuat');
+    
+    // Load history from localStorage
+    loadTransactionHistory();
+    
+    // Update history badge
+    updateHistoryBadge();
+    
+    // Initialize chart
+    initTransactionChart();
     
     // Show loading screen for 3 seconds
     setTimeout(() => {
@@ -196,33 +236,57 @@ function setupEventListeners() {
     downloadQRISBtn.addEventListener('click', downloadQRIS);
     
     // Tombol Saya Sudah Bayar
-    iHavePaidBtn.addEventListener('click', () => {
-        console.log('Saya Sudah Bayar diklik');
-        
-        // Hentikan timer kedaluwarsa
-        if (qrisExpiryTimer) {
-            clearTimeout(qrisExpiryTimer);
-            qrisExpiryTimer = null;
-        }
-        
-        // Redirect ke WhatsApp
-        const whatsappUrl = 'https://wa.me/62882020034316';
-        console.log('Membuka WhatsApp:', whatsappUrl);
-        window.open(whatsappUrl, '_blank');
-        
-        // Tutup detail QRIS setelah delay
-        setTimeout(() => {
-            if (activePaymentCard) {
-                closePaymentCard(activePaymentCard);
-                activePaymentCard = null;
-            }
-        }, 1000);
+    iHavePaidBtn.addEventListener('click', markAsPaid);
+    
+    // QRIS amount input change
+    qrisAmountInput.addEventListener('input', updateFeeCalculation);
+    
+    // History filter buttons
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            const filter = button.getAttribute('data-filter');
+            filterHistory(filter);
+        });
     });
     
-    // Tutup modal saat klik di luar
+    // History search
+    searchHistory.addEventListener('input', () => {
+        searchTransactionHistory();
+    });
+    
+    // Clear history button
+    clearHistoryBtn.addEventListener('click', () => {
+        confirmModal.classList.add('active');
+    });
+    
+    // Confirm clear history
+    confirmClear.addEventListener('click', clearAllHistory);
+    
+    // Cancel clear history
+    cancelClear.addEventListener('click', () => {
+        confirmModal.classList.remove('active');
+    });
+    
+    // Export history button
+    exportHistoryBtn.addEventListener('click', exportHistory);
+    
+    // Close detail modal
+    closeDetailModal.addEventListener('click', () => {
+        detailModal.classList.remove('active');
+    });
+    
+    // Close modals when clicking outside
     window.addEventListener('click', (e) => {
         if (e.target === copyModal) {
             copyModal.classList.remove('active');
+        }
+        if (e.target === detailModal) {
+            detailModal.classList.remove('active');
+        }
+        if (e.target === confirmModal) {
+            confirmModal.classList.remove('active');
         }
     });
     
@@ -248,7 +312,44 @@ function setupEventListeners() {
     console.log('Event listeners berhasil di setup');
 }
 
-// Inisialisasi animasi
+// Calculate fee based on amount
+function calculateFee(amount) {
+    const amountNum = parseInt(amount);
+    let feeRate;
+    
+    if (amountNum >= FEE_CONFIG.high.threshold) {
+        feeRate = FEE_CONFIG.high.feeRate; // 0.7% untuk 20k ke atas
+    } else if (amountNum >= FEE_CONFIG.low.threshold) {
+        feeRate = FEE_CONFIG.low.feeRate; // 0.3% untuk 10k - 19,999
+    } else {
+        feeRate = 0; // Tidak ada fee untuk di bawah 10k
+    }
+    
+    const fee = Math.round(amountNum * feeRate);
+    const total = amountNum + fee;
+    
+    return {
+        originalAmount: amountNum,
+        fee: fee,
+        feeRate: feeRate * 100, // dalam persen
+        totalAmount: total
+    };
+}
+
+// Update fee calculation display
+function updateFeeCalculation() {
+    const amount = qrisAmountInput.value;
+    if (!amount || amount < 10000) return;
+    
+    const calculation = calculateFee(amount);
+    
+    // Update display
+    displayAmount.textContent = calculation.originalAmount.toLocaleString('id-ID');
+    feeAmount.textContent = `${calculation.fee.toLocaleString('id-ID')} (${calculation.feeRate}%)`;
+    totalAmount.textContent = `Rp ${calculation.totalAmount.toLocaleString('id-ID')}`;
+}
+
+// Initialize animations
 function initAnimations() {
     console.log('Inisialisasi animasi...');
     
@@ -272,7 +373,7 @@ function initAnimations() {
     console.log('Animasi scroll diaktifkan');
 }
 
-// Inisialisasi stats counter animation
+// Initialize stats counter animation
 function initStatsCounter() {
     console.log('Inisialisasi stat counter...');
     
@@ -324,7 +425,7 @@ function initStatsCounter() {
     }
 }
 
-// Buka payment card dengan animasi
+// Open payment card with animation
 function openPaymentCard(card) {
     console.log('Membuka payment card:', card.dataset.method);
     card.classList.add('active');
@@ -390,6 +491,9 @@ function handleQRISCardOpen() {
     qrisInput.style.display = 'none';
     qrisResult.style.display = 'none';
     
+    // Update fee calculation untuk nilai default
+    updateFeeCalculation();
+    
     // Tampilkan loading selama 3 detik
     setTimeout(() => {
         qrisLoading.style.display = 'none';
@@ -437,6 +541,9 @@ async function generateQRIS() {
         return;
     }
     
+    // Hitung fee
+    const feeCalculation = calculateFee(amount);
+    
     // Tampilkan loading state
     generateQRISBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menggenerate...';
     generateQRISBtn.disabled = true;
@@ -444,9 +551,12 @@ async function generateQRIS() {
     try {
         console.log('Mengirim request ke API QRIS...');
         
+        // Gunakan total amount (termasuk fee) untuk API
+        const totalAmountForAPI = feeCalculation.totalAmount.toString();
+        
         // Persiapkan data request
         const requestData = {
-            amount: amount.toString(),
+            amount: totalAmountForAPI, // Kirim total amount (termasuk fee)
             qris: QRIS_STATIC_STRING
         };
         
@@ -474,11 +584,11 @@ async function generateQRIS() {
         setTimeout(() => {
             if (data.status === 'success') {
                 console.log('QRIS berhasil digenerate');
-                handleQRISSuccess(data, amount);
+                handleQRISSuccess(data, feeCalculation);
             } else {
                 console.error('API Error:', data.message);
                 // Fallback ke QRIS lokal jika API error
-                handleQRISFallback(amount);
+                handleQRISFallback(feeCalculation);
             }
         }, 3000);
         
@@ -488,13 +598,13 @@ async function generateQRIS() {
         // Simulasi delay 3 detik
         setTimeout(() => {
             // Fallback ke QRIS lokal
-            handleQRISFallback(amount);
+            handleQRISFallback(feeCalculation);
         }, 3000);
     }
 }
 
 // Handle QRIS success response
-function handleQRISSuccess(data, amount) {
+function handleQRISSuccess(data, feeCalculation) {
     // Generate transaction ID
     currentTransactionId = 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     
@@ -502,14 +612,16 @@ function handleQRISSuccess(data, amount) {
     currentQRISData = {
         qrisString: data.data.qris_string,
         qrBase64: data.data.qr_base64,
-        amount: amount
+        feeCalculation: feeCalculation,
+        timestamp: new Date().toISOString()
     };
     
     // Tampilkan QR code dari base64
-    displayQRCodeFromBase64(data.data.qr_base64, amount);
+    displayQRCodeFromBase64(data.data.qr_base64, feeCalculation.totalAmount);
     
     // Update UI dengan hasil QRIS
-    qrisNominal.textContent = 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+    qrisNominal.textContent = 'Rp ' + feeCalculation.originalAmount.toLocaleString('id-ID');
+    qrisTotal.textContent = 'Rp ' + feeCalculation.totalAmount.toLocaleString('id-ID');
     transactionIdElement.textContent = currentTransactionId;
     
     // Hitung waktu kedaluwarsa (5 menit dari sekarang)
@@ -525,27 +637,32 @@ function handleQRISSuccess(data, amount) {
     
     // Reset tombol
     resetGenerateButton();
+    
+    // Simpan transaksi ke history
+    saveTransactionToHistory(currentTransactionId, feeCalculation, 'pending', expiryTime);
 }
 
 // Handle QRIS fallback jika API error
-function handleQRISFallback(amount) {
+function handleQRISFallback(feeCalculation) {
     console.log('Menggunakan QRIS fallback');
     
     // Generate transaction ID
     currentTransactionId = 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     
     // Buat QRIS string dinamis (simulasi)
-    const dynamicQRIS = generateDynamicQRISString(amount);
+    const dynamicQRIS = generateDynamicQRISString(feeCalculation.totalAmount);
     currentQRISData = {
         qrisString: dynamicQRIS,
-        amount: amount
+        feeCalculation: feeCalculation,
+        timestamp: new Date().toISOString()
     };
     
     // Generate QR code
-    generateQRCode(dynamicQRIS, amount);
+    generateQRCode(dynamicQRIS, feeCalculation.totalAmount);
     
     // Update UI dengan hasil QRIS
-    qrisNominal.textContent = 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+    qrisNominal.textContent = 'Rp ' + feeCalculation.originalAmount.toLocaleString('id-ID');
+    qrisTotal.textContent = 'Rp ' + feeCalculation.totalAmount.toLocaleString('id-ID');
     transactionIdElement.textContent = currentTransactionId;
     
     // Hitung waktu kedaluwarsa (5 menit dari sekarang)
@@ -561,6 +678,9 @@ function handleQRISFallback(amount) {
     
     // Reset tombol
     resetGenerateButton();
+    
+    // Simpan transaksi ke history
+    saveTransactionToHistory(currentTransactionId, feeCalculation, 'pending', expiryTime);
 }
 
 // Reset generate button state
@@ -753,6 +873,11 @@ function updateExpiryDisplay(expiryTime) {
             qrisExpiryTimer = null;
         }
         
+        // Update status transaksi menjadi expired
+        if (currentTransactionId) {
+            updateTransactionStatus(currentTransactionId, 'expired');
+        }
+        
         // Sembunyikan QRIS setelah 2 detik
         setTimeout(() => {
             if (activePaymentCard && activePaymentCard.dataset.method === 'qris') {
@@ -777,6 +902,38 @@ function updateExpiryDisplay(expiryTime) {
     }
     
     expiryInfo.textContent = `Kedaluwarsa dalam: ${diffMins}:${diffSecs.toString().padStart(2, '0')} menit`;
+}
+
+// Mark transaction as paid
+function markAsPaid() {
+    console.log('Saya Sudah Bayar diklik');
+    
+    if (!currentTransactionId) {
+        alert('Tidak ada transaksi aktif');
+        return;
+    }
+    
+    // Hentikan timer kedaluwarsa
+    if (qrisExpiryTimer) {
+        clearTimeout(qrisExpiryTimer);
+        qrisExpiryTimer = null;
+    }
+    
+    // Update status transaksi menjadi success
+    updateTransactionStatus(currentTransactionId, 'success');
+    
+    // Redirect ke WhatsApp
+    const whatsappUrl = 'https://wa.me/62882020034316';
+    console.log('Membuka WhatsApp:', whatsappUrl);
+    window.open(whatsappUrl, '_blank');
+    
+    // Tutup detail QRIS setelah delay
+    setTimeout(() => {
+        if (activePaymentCard) {
+            closePaymentCard(activePaymentCard);
+            activePaymentCard = null;
+        }
+    }, 1000);
 }
 
 // Download QRIS image
@@ -874,6 +1031,500 @@ function showCopyModal() {
     }, 2000);
 }
 
+// ==================== HISTORY TRANSACTION SYSTEM ====================
+
+// Load transaction history from localStorage
+function loadTransactionHistory() {
+    const savedHistory = localStorage.getItem('anggazyyPayHistory');
+    if (savedHistory) {
+        transactionHistory = JSON.parse(savedHistory);
+        console.log('History loaded:', transactionHistory.length, 'transactions');
+    } else {
+        transactionHistory = [];
+        console.log('No history found, initializing empty array');
+    }
+    
+    // Update display
+    renderHistoryList();
+    updateHistoryStats();
+}
+
+// Save transaction to history
+function saveTransactionToHistory(transactionId, feeCalculation, status, expiryTime) {
+    const transaction = {
+        id: transactionId,
+        originalAmount: feeCalculation.originalAmount,
+        fee: feeCalculation.fee,
+        feeRate: feeCalculation.feeRate,
+        totalAmount: feeCalculation.totalAmount,
+        status: status, // 'pending', 'success', 'expired'
+        createdAt: new Date().toISOString(),
+        expiryTime: expiryTime.toISOString(),
+        paidAt: status === 'success' ? new Date().toISOString() : null
+    };
+    
+    transactionHistory.unshift(transaction); // Add to beginning
+    saveHistoryToStorage();
+    
+    console.log('Transaction saved to history:', transaction);
+    
+    // Update UI
+    updateHistoryBadge();
+    renderHistoryList();
+    updateHistoryStats();
+    updateTransactionChart();
+}
+
+// Update transaction status
+function updateTransactionStatus(transactionId, newStatus) {
+    const transaction = transactionHistory.find(t => t.id === transactionId);
+    if (transaction) {
+        transaction.status = newStatus;
+        if (newStatus === 'success') {
+            transaction.paidAt = new Date().toISOString();
+        }
+        saveHistoryToStorage();
+        
+        console.log('Transaction status updated:', transactionId, '->', newStatus);
+        
+        // Update UI
+        renderHistoryList();
+        updateHistoryStats();
+        updateTransactionChart();
+    }
+}
+
+// Save history to localStorage
+function saveHistoryToStorage() {
+    localStorage.setItem('anggazyyPayHistory', JSON.stringify(transactionHistory));
+    console.log('History saved to storage');
+}
+
+// Update history badge
+function updateHistoryBadge() {
+    const pendingCount = transactionHistory.filter(t => t.status === 'pending').length;
+    historyBadge.textContent = pendingCount > 0 ? pendingCount : '0';
+    
+    if (pendingCount > 0) {
+        historyBadge.style.backgroundColor = '#ffa502';
+    } else {
+        historyBadge.style.backgroundColor = '#00ff88';
+    }
+}
+
+// Render history list
+function renderHistoryList(filter = 'all', searchQuery = '') {
+    if (transactionHistory.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-history">
+                <i class="fas fa-history"></i>
+                <h3>Belum ada riwayat transaksi</h3>
+                <p>Transaksi QRIS Anda akan muncul di sini</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Filter transactions
+    let filteredTransactions = transactionHistory;
+    
+    if (filter !== 'all') {
+        filteredTransactions = transactionHistory.filter(t => t.status === filter);
+    }
+    
+    // Search transactions
+    if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredTransactions = filteredTransactions.filter(t => 
+            t.id.toLowerCase().includes(query) ||
+            t.originalAmount.toString().includes(query) ||
+            t.totalAmount.toString().includes(query)
+        );
+    }
+    
+    if (filteredTransactions.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-history">
+                <i class="fas fa-search"></i>
+                <h3>Tidak ada transaksi ditemukan</h3>
+                <p>Coba dengan kata kunci atau filter yang berbeda</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Render transactions
+    historyList.innerHTML = filteredTransactions.map(transaction => `
+        <div class="history-item" data-id="${transaction.id}">
+            <div class="history-item-header">
+                <div class="history-item-id">${transaction.id}</div>
+                <div class="history-item-status ${getStatusClass(transaction.status)}">
+                    ${getStatusText(transaction.status)}
+                </div>
+            </div>
+            <div class="history-item-details">
+                <div class="history-detail">
+                    <span class="detail-label">Nominal</span>
+                    <span class="detail-value">Rp ${transaction.originalAmount.toLocaleString('id-ID')}</span>
+                </div>
+                <div class="history-detail">
+                    <span class="detail-label">Total + Fee</span>
+                    <span class="detail-value">Rp ${transaction.totalAmount.toLocaleString('id-ID')}</span>
+                </div>
+                <div class="history-detail">
+                    <span class="detail-label">Tanggal</span>
+                    <span class="detail-value">${formatDate(transaction.createdAt)}</span>
+                </div>
+                <div class="history-detail">
+                    <span class="detail-label">Waktu</span>
+                    <span class="detail-value">${formatTime(transaction.createdAt)}</span>
+                </div>
+            </div>
+            <div class="history-item-actions">
+                <button class="action-btn small view-detail" data-id="${transaction.id}">
+                    <i class="fas fa-eye"></i> Detail
+                </button>
+                ${transaction.status === 'pending' ? `
+                <button class="action-btn small mark-paid" data-id="${transaction.id}">
+                    <i class="fas fa-check"></i> Tandai Sudah Bayar
+                </button>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    // Add event listeners to detail buttons
+    document.querySelectorAll('.view-detail').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const transactionId = button.getAttribute('data-id');
+            showTransactionDetail(transactionId);
+        });
+    });
+    
+    // Add event listeners to mark paid buttons
+    document.querySelectorAll('.mark-paid').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const transactionId = button.getAttribute('data-id');
+            markTransactionAsPaid(transactionId);
+        });
+    });
+    
+    // Add event listeners to history items
+    document.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (!e.target.closest('.action-btn')) {
+                const transactionId = item.getAttribute('data-id');
+                showTransactionDetail(transactionId);
+            }
+        });
+    });
+}
+
+// Get status class
+function getStatusClass(status) {
+    switch(status) {
+        case 'success': return 'status-success';
+        case 'expired': return 'status-expired';
+        case 'pending': return 'status-pending';
+        default: return '';
+    }
+}
+
+// Get status text
+function getStatusText(status) {
+    switch(status) {
+        case 'success': return 'Berhasil';
+        case 'expired': return 'Expired';
+        case 'pending': return 'Pending';
+        default: return status;
+    }
+}
+
+// Format date
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+// Format time
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Update history stats
+function updateHistoryStats() {
+    const total = transactionHistory.length;
+    const success = transactionHistory.filter(t => t.status === 'success').length;
+    const expired = transactionHistory.filter(t => t.status === 'expired').length;
+    const pending = transactionHistory.filter(t => t.status === 'pending').length;
+    
+    totalTransactions.textContent = total;
+    successTransactions.textContent = success;
+    expiredTransactions.textContent = expired;
+    pendingTransactions.textContent = pending;
+}
+
+// Filter history
+function filterHistory(filter) {
+    renderHistoryList(filter, searchHistory.value);
+}
+
+// Search transaction history
+function searchTransactionHistory() {
+    const query = searchHistory.value;
+    const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-filter');
+    renderHistoryList(activeFilter, query);
+}
+
+// Show transaction detail
+function showTransactionDetail(transactionId) {
+    const transaction = transactionHistory.find(t => t.id === transactionId);
+    if (!transaction) return;
+    
+    const expiryDate = new Date(transaction.expiryTime);
+    const now = new Date();
+    const isExpired = now > expiryDate && transaction.status === 'pending';
+    
+    // Update status if expired
+    if (isExpired) {
+        transaction.status = 'expired';
+        saveHistoryToStorage();
+        updateHistoryStats();
+        updateTransactionChart();
+    }
+    
+    transactionDetail.innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">ID Transaksi</span>
+            <span class="detail-value">${transaction.id}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="detail-value ${getStatusClass(transaction.status)}">${getStatusText(transaction.status)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Nominal Awal</span>
+            <span class="detail-value">Rp ${transaction.originalAmount.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Biaya (${transaction.feeRate}%)</span>
+            <span class="detail-value">Rp ${transaction.fee.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Total Tagihan</span>
+            <span class="detail-value">Rp ${transaction.totalAmount.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Tanggal Transaksi</span>
+            <span class="detail-value">${formatDate(transaction.createdAt)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Waktu Transaksi</span>
+            <span class="detail-value">${formatTime(transaction.createdAt)}</span>
+        </div>
+        ${transaction.paidAt ? `
+        <div class="detail-row">
+            <span class="detail-label">Dibayar Pada</span>
+            <span class="detail-value">${formatDate(transaction.paidAt)} ${formatTime(transaction.paidAt)}</span>
+        </div>
+        ` : ''}
+        <div class="detail-row">
+            <span class="detail-label">Kedaluwarsa</span>
+            <span class="detail-value">${formatDate(transaction.expiryTime)} ${formatTime(transaction.expiryTime)}</span>
+        </div>
+    `;
+    
+    detailModal.classList.add('active');
+}
+
+// Mark transaction as paid
+function markTransactionAsPaid(transactionId) {
+    updateTransactionStatus(transactionId, 'success');
+    alert('Transaksi berhasil ditandai sebagai sudah dibayar!');
+}
+
+// Clear all history
+function clearAllHistory() {
+    transactionHistory = [];
+    saveHistoryToStorage();
+    confirmModal.classList.remove('active');
+    
+    // Update UI
+    updateHistoryBadge();
+    renderHistoryList();
+    updateHistoryStats();
+    updateTransactionChart();
+    
+    alert('Semua riwayat transaksi telah dihapus!');
+}
+
+// Export history
+function exportHistory() {
+    if (transactionHistory.length === 0) {
+        alert('Tidak ada riwayat transaksi untuk diexport');
+        return;
+    }
+    
+    // Convert to CSV
+    const headers = ['ID Transaksi', 'Status', 'Nominal Awal', 'Biaya', 'Total Tagihan', 'Tanggal', 'Waktu', 'Dibayar Pada'];
+    const csvRows = [
+        headers.join(','),
+        ...transactionHistory.map(t => [
+            t.id,
+            getStatusText(t.status),
+            t.originalAmount,
+            t.fee,
+            t.totalAmount,
+            formatDate(t.createdAt),
+            formatTime(t.createdAt),
+            t.paidAt ? `${formatDate(t.paidAt)} ${formatTime(t.paidAt)}` : ''
+        ].join(','))
+    ];
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create download link
+    const link = document.createElement('a');
+    const timestamp = new Date().getTime();
+    link.href = url;
+    link.download = `anggazyy-pay-history-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+    
+    console.log('History exported');
+}
+
+// Initialize transaction chart
+function initTransactionChart() {
+    const ctx = document.getElementById('transactionChart').getContext('2d');
+    
+    // Get data for chart
+    const last7Days = getLast7Days();
+    const chartData = getChartData(last7Days);
+    
+    transactionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: last7Days.map(day => formatChartDate(day)),
+            datasets: [
+                {
+                    label: 'Transaksi Berhasil',
+                    data: chartData.success,
+                    backgroundColor: '#00ff88',
+                    borderColor: '#00cc6a',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Transaksi Expired',
+                    data: chartData.expired,
+                    backgroundColor: '#ff6b6b',
+                    borderColor: '#ff4757',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Transaksi Pending',
+                    data: chartData.pending,
+                    backgroundColor: '#ffa502',
+                    borderColor: '#ff8c00',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Get last 7 days
+function getLast7Days() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        days.push(date);
+    }
+    return days;
+}
+
+// Get chart data
+function getChartData(days) {
+    const success = [];
+    const expired = [];
+    const pending = [];
+    
+    days.forEach(day => {
+        const dayStart = new Date(day);
+        dayStart.setHours(0, 0, 0, 0);
+        
+        const dayEnd = new Date(day);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        const dayTransactions = transactionHistory.filter(t => {
+            const transactionDate = new Date(t.createdAt);
+            return transactionDate >= dayStart && transactionDate <= dayEnd;
+        });
+        
+        success.push(dayTransactions.filter(t => t.status === 'success').length);
+        expired.push(dayTransactions.filter(t => t.status === 'expired').length);
+        pending.push(dayTransactions.filter(t => t.status === 'pending').length);
+    });
+    
+    return { success, expired, pending };
+}
+
+// Format chart date
+function formatChartDate(date) {
+    return date.toLocaleDateString('id-ID', { weekday: 'short' });
+}
+
+// Update transaction chart
+function updateTransactionChart() {
+    if (!transactionChart) return;
+    
+    const last7Days = getLast7Days();
+    const chartData = getChartData(last7Days);
+    
+    transactionChart.data.labels = last7Days.map(day => formatChartDate(day));
+    transactionChart.data.datasets[0].data = chartData.success;
+    transactionChart.data.datasets[1].data = chartData.expired;
+    transactionChart.data.datasets[2].data = chartData.pending;
+    
+    transactionChart.update();
+}
+
 // Inisialisasi saat DOM dimuat
 document.addEventListener('DOMContentLoaded', init);
 
@@ -884,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroSection = document.querySelector('.hero-section');
     
     // Buat floating elements untuk background
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 15; i++) {
         const floatingElement = document.createElement('div');
         floatingElement.className = 'floating-bg-element';
         

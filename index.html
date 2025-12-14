@@ -10,6 +10,8 @@
     <link rel="icon" href="https://c.termai.cc/i102/B2B.jpg" type="image/jpeg">
     <!-- QR Code Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <!-- Chart.js untuk statistik history -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -40,6 +42,10 @@
                 <a href="#home" class="nav-link active">Beranda</a>
                 <a href="#payment" class="nav-link">Pembayaran</a>
                 <a href="#stats" class="nav-link">Statistik</a>
+                <a href="#history" class="nav-link" id="historyLink">
+                    <i class="fas fa-history"></i> History Transaksi
+                    <span class="history-badge" id="historyBadge">0</span>
+                </a>
             </nav>
             <button class="menu-toggle" id="menuToggle">
                 <i class="fas fa-bars"></i>
@@ -214,6 +220,16 @@
                                 <div class="input-group">
                                     <span class="input-prefix">Rp</span>
                                     <input type="number" id="qrisAmount" placeholder="10000" min="10000" value="10000">
+                                    <div class="fee-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span class="fee-tooltip">Termasuk biaya administrasi sistem</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="amount-breakdown">
+                                    <p>Nominal yang Anda masukkan: <span id="displayAmount">10.000</span></p>
+                                    <p class="fee-text">Biaya sistem: <span id="feeAmount">300</span> (0.3%)</p>
+                                    <p class="total-amount">Total yang akan ditagih: <strong id="totalAmount">10.300</strong></p>
                                 </div>
                                 
                                 <button class="generate-qris-btn" id="generateQRIS">
@@ -228,6 +244,7 @@
                                 </div>
                                 <p class="transaction-info">
                                     Nominal: <strong id="qrisNominal">Rp 10.000</strong><br>
+                                    Total Tagihan: <strong id="qrisTotal">Rp 10.300</strong><br>
                                     ID Transaksi: <span id="transactionId">TRX-123456789</span>
                                     <button class="copy-btn small" id="copyTrxId">
                                         <i class="far fa-copy"></i>
@@ -338,6 +355,69 @@
             </div>
         </section>
 
+        <!-- History Transaction Section -->
+        <section class="history-section" id="history">
+            <h2 class="section-title fade-in">History Transaksi</h2>
+            <p class="section-subtitle fade-in">Riwayat pembayaran QRIS Anda</p>
+            
+            <div class="history-container">
+                <div class="history-header">
+                    <div class="history-filter">
+                        <button class="filter-btn active" data-filter="all">Semua</button>
+                        <button class="filter-btn" data-filter="success">Berhasil</button>
+                        <button class="filter-btn" data-filter="expired">Expired</button>
+                        <button class="filter-btn" data-filter="pending">Pending</button>
+                    </div>
+                    
+                    <div class="history-search">
+                        <input type="text" id="searchHistory" placeholder="Cari ID Transaksi atau Nominal...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                
+                <div class="history-stats">
+                    <div class="stat-box">
+                        <h4>Total Transaksi</h4>
+                        <p id="totalTransactions">0</p>
+                    </div>
+                    <div class="stat-box success">
+                        <h4>Berhasil</h4>
+                        <p id="successTransactions">0</p>
+                    </div>
+                    <div class="stat-box expired">
+                        <h4>Expired</h4>
+                        <p id="expiredTransactions">0</p>
+                    </div>
+                    <div class="stat-box pending">
+                        <h4>Pending</h4>
+                        <p id="pendingTransactions">0</p>
+                    </div>
+                </div>
+                
+                <div class="history-chart">
+                    <canvas id="transactionChart"></canvas>
+                </div>
+                
+                <div class="history-list" id="historyList">
+                    <!-- History items akan dimuat di sini oleh JavaScript -->
+                    <div class="empty-history">
+                        <i class="fas fa-history"></i>
+                        <h3>Belum ada riwayat transaksi</h3>
+                        <p>Transaksi QRIS Anda akan muncul di sini</p>
+                    </div>
+                </div>
+                
+                <div class="history-actions">
+                    <button class="action-btn" id="clearHistory">
+                        <i class="fas fa-trash"></i> Hapus Semua History
+                    </button>
+                    <button class="action-btn" id="exportHistory">
+                        <i class="fas fa-file-export"></i> Export History
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- Supported By Section -->
         <section class="supported-section">
             <h2 class="section-title fade-in">Didukung Oleh</h2>
@@ -404,6 +484,30 @@
             <h3>Berhasil Disalin!</h3>
             <p>Nomor rekening telah disalin ke clipboard.</p>
             <button class="modal-close-btn">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Modal for Transaction Detail -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content detail-modal">
+            <button class="modal-close" id="closeDetailModal">&times;</button>
+            <h3>Detail Transaksi</h3>
+            <div class="transaction-detail" id="transactionDetail">
+                <!-- Detail transaksi akan dimuat di sini -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Confirm Clear History -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content confirm-modal">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+            <h3>Hapus Semua History?</h3>
+            <p>Apakah Anda yakin ingin menghapus semua riwayat transaksi? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" id="cancelClear">Batal</button>
+                <button class="modal-btn confirm" id="confirmClear">Hapus Semua</button>
+            </div>
         </div>
     </div>
 
