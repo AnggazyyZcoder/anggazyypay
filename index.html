@@ -3,283 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anggazyy Pay | Solusi Pembayaran Digital</title>
+    <title>Anggazyy Pay - Pembayaran Digital</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&family=Montserrat:wght@500;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="https://c.termai.cc/i102/B2B.jpg" type="image/jpeg">
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen animate__animated animate__fadeIn">
+    <div id="loadingScreen" class="loading-screen">
         <div class="loading-content">
-            <div class="spinner"><i class="fas fa-coins fa-spin"></i></div>
-            <h2 class="loading-text">Memuat Anggazyy Pay...</h2>
-            <div class="loading-bar"><div class="loading-progress"></div></div>
+            <div class="loading-logo">
+                <i class="fas fa-money-check-alt"></i>
+            </div>
+            <div class="loading-text">
+                <h2>Anggazyy Pay</h2>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+                <p>Memuat sistem pembayaran...</p>
+            </div>
         </div>
     </div>
 
-    <!-- Background Animasi -->
-    <div class="animated-bg"></div>
-
     <!-- Main Container -->
-    <main class="container">
+    <div class="container" id="mainContainer">
         <!-- Header -->
         <header class="header">
             <div class="logo">
                 <i class="fas fa-money-check-alt"></i>
-                <h1>Anggazyy <span class="highlight">Pay</span></h1>
+                <span>Anggazyy Pay</span>
             </div>
-            <button class="btn-menu" id="menuToggle"><i class="fas fa-bars"></i></button>
+            <nav class="nav">
+                <a href="#home" class="nav-link active">Beranda</a>
+                <a href="#payment" class="nav-link">Pembayaran</a>
+                <a href="#stats" class="nav-link">Statistik</a>
+            </nav>
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
         </header>
 
         <!-- Hero Section -->
-        <section class="hero animate__animated animate__fadeInUp">
-            <h2 class="hero-title">Hai, Selamat datang di <span class="highlight">Anggazyy Pay</span>!</h2>
-            <p class="hero-subtitle">Disini kamu dapat melihat payment anggazyy secara realtime ya!</p>
-            <button class="btn-primary" id="startBtn">
-                <span>Mulai Bertransaksi!</span>
-                <i class="fas fa-arrow-down"></i>
-            </button>
+        <section class="hero-section" id="home">
+            <div class="hero-content fade-in">
+                <h1 class="hero-title">Hai, Selamat datang di <span class="highlight">Anggazyy Pay!</span></h1>
+                <p class="hero-subtitle">Disini kamu dapat melihat payment anggazyy secara realtime ya!</p>
+                
+                <div class="hero-cta">
+                    <button class="cta-button" id="startTransaction">
+                        Mulai Bertransaksi!
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="hero-illustration">
+                <div class="floating-card">
+                    <i class="fas fa-wallet"></i>
+                    <p>Pembayaran Digital</p>
+                </div>
+                <div class="floating-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <p>Aman & Terpercaya</p>
+                </div>
+                <div class="floating-card">
+                    <i class="fas fa-bolt"></i>
+                    <p>Transaksi Cepat</p>
+                </div>
+            </div>
         </section>
 
-        <!-- Payment Methods -->
-        <section class="payment-section" id="paymentSection">
-            <h3 class="section-title"><i class="fas fa-wallet"></i> Payment Modal</h3>
-            <p class="section-subtitle">Berikut payment yang tersedia</p>
+        <!-- Payment Methods Section -->
+        <section class="payment-section" id="payment">
+            <h2 class="section-title fade-in">Berikut payment yang tersedia</h2>
+            <p class="section-subtitle fade-in">Pilih metode pembayaran favorit Anda</p>
+            
             <div class="payment-grid">
                 <!-- Dana -->
-                <div class="payment-card" data-method="dana">
+                <div class="payment-card fade-in" data-method="dana">
                     <div class="payment-header">
-                        <img src="https://c.termai.cc/i158/h6S.jpg" alt="Dana" class="payment-icon">
-                        <h4>Dana</h4>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <img src="https://c.termai.cc/i158/h6S.jpg" alt="Dana" class="payment-logo">
+                        <h3>Dana</h3>
+                        <i class="fas fa-chevron-down payment-toggle"></i>
                     </div>
                     <div class="payment-details">
                         <div class="account-info">
-                            <p class="account-number"><span class="label">No. Rek:</span> <span class="number">0882020034316</span></p>
-                            <p class="account-name"><span class="label">A/n:</span> Ervina Trisnawaty</p>
-                            <button class="btn-copy" data-clipboard-text="0882020034316">
-                                <i class="far fa-copy"></i> Copy No rek
-                            </button>
+                            <p class="account-label">Nomor:</p>
+                            <div class="account-number">
+                                <span class="hidden-number">**** **** ****</span>
+                                <span class="real-number">0882020034316</span>
+                                <button class="copy-btn" data-clipboard-text="0882020034316">
+                                    <i class="far fa-copy"></i> Salin
+                                </button>
+                            </div>
+                            <p class="account-name">A/n: Ervina Trisnawaty</p>
                         </div>
+                        
                         <div class="payment-tips">
-                            <h5><i class="fas fa-lightbulb"></i> Tips Membayar:</h5>
-                            <p>1. Buka aplikasi Dana<br>2. Ketuk 'Kirim'<br>3. Masukkan nomor di atas<br>4. Konfirmasi pembayaran</p>
+                            <h4><i class="fas fa-lightbulb"></i> Tips Pembayaran</h4>
+                            <ol>
+                                <li>Buka aplikasi Dana di ponsel Anda</li>
+                                <li>Pilih menu "Kirim" atau "Transfer"</li>
+                                <li>Masukkan nomor 0882020034316</li>
+                                <li>Masukkan nominal yang ingin dibayarkan</li>
+                                <li>Konfirmasi dan selesaikan transaksi</li>
+                            </ol>
                         </div>
+                        
+                        <button class="close-details-btn">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                     </div>
                 </div>
 
                 <!-- Gopay -->
-                <div class="payment-card" data-method="gopay">
+                <div class="payment-card fade-in" data-method="gopay">
                     <div class="payment-header">
-                        <img src="https://cdn-uploads.huggingface.co/production/uploads/noauth/k4N36Lzbff14ak3RjRJW5.jpeg" alt="Gopay" class="payment-icon">
-                        <h4>Gopay</h4>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <img src="https://cdn-uploads.huggingface.co/production/uploads/noauth/k4N36Lzbff14ak3RjRJW5.jpeg" alt="Gopay" class="payment-logo">
+                        <h3>Gopay</h3>
+                        <i class="fas fa-chevron-down payment-toggle"></i>
                     </div>
                     <div class="payment-details">
                         <div class="account-info">
-                            <p class="account-number"><span class="label">No. Rek:</span> <span class="number">0882019210813</span></p>
-                            <p class="account-name"><span class="label">A/n:</span> Ervina trisnawaty</p>
-                            <button class="btn-copy" data-clipboard-text="0882019210813">
-                                <i class="far fa-copy"></i> Copy No rek
-                            </button>
+                            <p class="account-label">Nomor:</p>
+                            <div class="account-number">
+                                <span class="hidden-number">**** **** ****</span>
+                                <span class="real-number">0882019210813</span>
+                                <button class="copy-btn" data-clipboard-text="0882019210813">
+                                    <i class="far fa-copy"></i> Salin
+                                </button>
+                            </div>
+                            <p class="account-name">A/n: Ervina Trisnawaty</p>
                         </div>
+                        
                         <div class="payment-tips">
-                            <h5><i class="fas fa-lightbulb"></i> Tips Membayar:</h5>
-                            <p>1. Buka Gojek > GoPay<br>2. Pilih 'Bayar'<br>3. Scan atau masukkan nomor<br>4. Selesaikan transaksi</p>
+                            <h4><i class="fas fa-lightbulb"></i> Tips Pembayaran</h4>
+                            <ol>
+                                <li>Buka aplikasi Gojek di ponsel Anda</li>
+                                <li>Pilih menu "GoPay" atau "Bayar"</li>
+                                <li>Pilih "Transfer ke Pengguna GoPay"</li>
+                                <li>Masukkan nomor 0882019210813</li>
+                                <li>Masukkan nominal dan konfirmasi</li>
+                            </ol>
                         </div>
+                        
+                        <button class="close-details-btn">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                     </div>
                 </div>
 
                 <!-- ShopeePay -->
-                <div class="payment-card" data-method="shopeepay">
+                <div class="payment-card fade-in" data-method="shopeepay">
                     <div class="payment-header">
-                        <img src="https://c.termai.cc/i166/LAsa.jpg" alt="ShoopePay" class="payment-icon">
-                        <h4>ShoopePay</h4>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <img src="https://c.termai.cc/i166/LAsa.jpg" alt="ShopeePay" class="payment-logo">
+                        <h3>ShopeePay</h3>
+                        <i class="fas fa-chevron-down payment-toggle"></i>
                     </div>
                     <div class="payment-details">
                         <div class="account-info">
-                            <p class="account-number"><span class="label">No. Rek:</span> <span class="number">0882020034316</span></p>
-                            <p class="account-name"><span class="label">A/n:</span> Ervina Trisnawaty</p>
-                            <button class="btn-copy" data-clipboard-text="0882020034316">
-                                <i class="far fa-copy"></i> Copy No rek
-                            </button>
+                            <p class="account-label">Nomor:</p>
+                            <div class="account-number">
+                                <span class="hidden-number">**** **** ****</span>
+                                <span class="real-number">0882020034316</span>
+                                <button class="copy-btn" data-clipboard-text="0882020034316">
+                                    <i class="far fa-copy"></i> Salin
+                                </button>
+                            </div>
+                            <p class="account-name">A/n: Ervina Trisnawaty</p>
                         </div>
+                        
                         <div class="payment-tips">
-                            <h5><i class="fas fa-lightbulb"></i> Tips Membayar:</h5>
-                            <p>1. Buka Shopee > ShopeePay<br>2. Ketuk 'Transfer'<br>3. Masukkan nomor di atas<br>4. Verifikasi dengan PIN</p>
+                            <h4><i class="fas fa-lightbulb"></i> Tips Pembayaran</h4>
+                            <ol>
+                                <li>Buka aplikasi Shopee di ponsel Anda</li>
+                                <li>Pilih menu "ShopeePay" atau dompet</li>
+                                <li>Pilih "Transfer ke Pengguna Shopee"</li>
+                                <li>Masukkan nomor 0882020034316</li>
+                                <li>Masukkan nominal dan selesaikan transaksi</li>
+                            </ol>
                         </div>
+                        
+                        <button class="close-details-btn">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                     </div>
                 </div>
 
                 <!-- QRIS -->
-                <div class="payment-card" data-method="qris">
+                <div class="payment-card fade-in" data-method="qris">
                     <div class="payment-header">
-                        <img src="https://c.termai.cc/i147/0Sm.jpg" alt="QRIS" class="payment-icon">
-                        <h4>QRIS</h4>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <img src="https://c.termai.cc/i147/0Sm.jpg" alt="QRIS" class="payment-logo">
+                        <h3>QRIS</h3>
+                        <i class="fas fa-chevron-down payment-toggle"></i>
                     </div>
                     <div class="payment-details">
-                        <div class="qris-container" id="qrisContainer">
-                            <p class="qris-info">Klik untuk generate QRIS dinamis</p>
-                            <button class="btn-qris" id="openQRISModalBtn">
-                                <i class="fas fa-qrcode"></i>
-                                <span>Generate QRIS</span>
-                            </button>
+                        <div class="qris-container">
+                            <div class="qris-loading" id="qrisLoading">
+                                <div class="spinner"></div>
+                                <p>Memuat QRIS...</p>
+                            </div>
+                            
+                            <div class="qris-input" id="qrisInput">
+                                <h4>Masukkan Nominal Pembayaran</h4>
+                                <p class="min-nominal">Minimal Rp 10.000</p>
+                                
+                                <div class="input-group">
+                                    <span class="input-prefix">Rp</span>
+                                    <input type="number" id="qrisAmount" placeholder="10000" min="10000" value="10000">
+                                </div>
+                                
+                                <button class="generate-qris-btn" id="generateQRIS">
+                                    Generate QRIS
+                                </button>
+                            </div>
+                            
+                            <div class="qris-result" id="qrisResult">
+                                <h4>QRIS Pembayaran</h4>
+                                <div class="qris-code-container">
+                                    <img id="qrisImage" src="" alt="QR Code">
+                                </div>
+                                <p class="transaction-id">
+                                    ID Transaksi: <span id="transactionId"></span>
+                                    <button class="copy-btn small" id="copyTrxId">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                </p>
+                                <p class="expiry-info" id="expiryInfo"></p>
+                                
+                                <div class="qris-actions">
+                                    <button class="action-btn" id="downloadQRIS">
+                                        <i class="fas fa-download"></i> Download QRIS
+                                    </button>
+                                    <button class="action-btn success" id="iHavePaid">
+                                        <i class="fas fa-check-circle"></i> Saya Sudah Bayar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        
+                        <button class="close-details-btn">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                     </div>
                 </div>
 
                 <!-- SeaBank -->
-                <div class="payment-card" data-method="seabank">
+                <div class="payment-card fade-in" data-method="seabank">
                     <div class="payment-header">
-                        <img src="https://c.termai.cc/i102/B2B.jpg" alt="Seabank" class="payment-icon">
-                        <h4>SeaBank</h4>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <img src="https://c.termai.cc/i102/B2B.jpg" alt="SeaBank" class="payment-logo">
+                        <h3>SeaBank</h3>
+                        <i class="fas fa-chevron-down payment-toggle"></i>
                     </div>
                     <div class="payment-details">
                         <div class="account-info">
-                            <p class="account-number"><span class="label">No. Rek:</span> <span class="number">901719747362</span></p>
-                            <p class="account-name"><span class="label">A/n:</span> Ervin Trisnawaty</p>
-                            <button class="btn-copy" data-clipboard-text="901719747362">
-                                <i class="far fa-copy"></i> Copy No rek
-                            </button>
+                            <p class="account-label">Nomor:</p>
+                            <div class="account-number">
+                                <span class="hidden-number">**** **** ****</span>
+                                <span class="real-number">901719747362</span>
+                                <button class="copy-btn" data-clipboard-text="901719747362">
+                                    <i class="far fa-copy"></i> Salin
+                                </button>
+                            </div>
+                            <p class="account-name">A/n: Ervin Trisnawaty</p>
                         </div>
+                        
                         <div class="payment-tips">
-                            <h5><i class="fas fa-lightbulb"></i> Tips Membayar:</h5>
-                            <p>1. Buka aplikasi SeaBank<br>2. Pilih 'Transfer'<br>3. Masukkan nomor rekening<br>4. Konfirmasi transaksi</p>
+                            <h4><i class="fas fa-lightbulb"></i> Tips Pembayaran</h4>
+                            <ol>
+                                <li>Buka aplikasi SeaBank di ponsel Anda</li>
+                                <li>Pilih menu "Transfer" atau "Kirim Uang"</li>
+                                <li>Pilih "Transfer ke Rekening Bank"</li>
+                                <li>Masukkan nomor rekening 901719747362</li>
+                                <li>Konfirmasi nominal dan selesaikan transaksi</li>
+                            </ol>
                         </div>
+                        
+                        <button class="close-details-btn">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- QRIS Modal -->
-        <div id="qrisModal" class="modal">
-            <div class="modal-content animate__animated animate__zoomIn">
-                <div class="modal-header">
-                    <h3><i class="fas fa-qrcode"></i> QRIS Generator</h3>
-                    <button class="btn-close" id="closeQRISModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="qris-loading" id="qrisLoading">
-                        <div class="loading-spinner">
-                            <div class="spinner-circle"></div>
-                            <div class="spinner-circle"></div>
-                            <div class="spinner-circle"></div>
-                        </div>
-                        <p class="loading-text">Memuat QRIS...</p>
-                    </div>
-                    <div class="qris-input" id="qrisInput" style="display: none;">
-                        <div class="input-group">
-                            <label for="amountInput"><i class="fas fa-money-bill-wave"></i> Masukkan Nominal (Minimal Rp 10.000)</label>
-                            <input type="number" id="amountInput" min="10000" step="1000" placeholder="Contoh: 10000">
-                            <small class="input-hint">Masukkan angka tanpa titik (contoh: 10000)</small>
-                        </div>
-                        <button class="btn-generate" id="confirmAmountBtn">
-                            <i class="fas fa-bolt"></i>
-                            <span>Generate QRIS</span>
-                        </button>
-                    </div>
-                    <div class="qris-result" id="qrisResult" style="display: none;">
-                        <div class="qris-header">
-                            <h4>QRIS Pembayaran</h4>
-                            <div class="transaction-id">
-                                <span>Your ID Trx: <strong id="trxId">LOADING...</strong></span>
-                                <button class="btn-copy-small" id="copyTrxId">
-                                    <i class="far fa-copy"></i> Copy
-                                </button>
-                            </div>
-                            <div class="amount-display">
-                                <i class="fas fa-tag"></i>
-                                <span>Amount: <strong id="amountDisplay">Rp 0</strong></span>
-                            </div>
-                            <div class="merchant-display" id="merchantDisplay" style="display: none;">
-                                <i class="fas fa-store"></i>
-                                <span>Merchant: <strong id="displayMerchantName">-</strong></span>
-                            </div>
-                            <div class="countdown">
-                                <i class="fas fa-clock"></i>
-                                <span>Expired dalam: <strong id="countdownTimer">05:00</strong></span>
-                            </div>
-                        </div>
-                        <div class="qris-code">
-                            <div class="qr-container" id="qrContainer">
-                                <!-- QR Code akan muncul di sini -->
-                                <div class="qr-placeholder">
-                                    <i class="fas fa-qrcode"></i>
-                                    <p>QR Code akan muncul di sini</p>
-                                </div>
-                            </div>
-                            <div class="payment-tips qris-tips">
-                                <h5><i class="fas fa-info-circle"></i> Cara Bayar:</h5>
-                                <p>1. Buka aplikasi e-wallet atau bank yang mendukung QRIS<br>2. Pilih 'Scan QR Code'<br>3. Arahkan kamera ke QR di atas<br>4. Konfirmasi pembayaran</p>
-                            </div>
-                        </div>
-                        <div class="action-buttons" id="actionButtons" style="display: none;">
-                            <button class="btn-action btn-download" id="downloadQRBtn">
-                                <i class="fas fa-download"></i>
-                                <span>Download QRIS</span>
-                            </button>
-                            <a href="#" class="btn-action btn-paid" id="paidBtn" target="_blank">
-                                <i class="fab fa-whatsapp"></i>
-                                <span>Saya Sudah Bayar</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Section -->
-        <section class="stats-section">
-            <h3 class="section-title"><i class="fas fa-chart-line"></i> Statistik Kami</h3>
+        <!-- Statistics Section -->
+        <section class="stats-section" id="stats">
+            <h2 class="section-title fade-in">Statistik Anggazyy Pay</h2>
+            <p class="section-subtitle fade-in">Pencapaian kami dalam melayani Anda</p>
+            
             <div class="stats-grid">
-                <div class="stat-card animate__animated">
+                <div class="stat-card fade-in">
                     <div class="stat-icon">
                         <i class="fas fa-exchange-alt"></i>
                     </div>
-                    <h4 class="stat-number" id="totalTransactions">0</h4>
+                    <h3 class="stat-number" data-count="400">0</h3>
                     <p class="stat-label">Total Transaksi</p>
                 </div>
-                <div class="stat-card animate__animated">
+                
+                <div class="stat-card fade-in">
                     <div class="stat-icon">
                         <i class="fas fa-star"></i>
                     </div>
-                    <h4 class="stat-number">4.8<span class="stat-small">/5</span></h4>
+                    <h3 class="stat-number" data-count="4.8">0</h3>
                     <p class="stat-label">Rating Pelanggan</p>
-                </div>
-                <div class="stat-card animate__animated">
-                    <div class="stat-icon">
-                        <i class="fas fa-comment-dots"></i>
+                    <div class="rating-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
                     </div>
-                    <h4 class="stat-number" id="totalTestimonials">0</h4>
+                </div>
+                
+                <div class="stat-card fade-in">
+                    <div class="stat-icon">
+                        <i class="fas fa-comment-alt"></i>
+                    </div>
+                    <h3 class="stat-number" data-count="500">0</h3>
                     <p class="stat-label">Testimonial</p>
+                </div>
+                
+                <div class="stat-card fade-in">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="stat-number" data-count="1200">0</h3>
+                    <p class="stat-label">Pengguna Aktif</p>
                 </div>
             </div>
         </section>
 
-        <!-- Supported By -->
+        <!-- Supported By Section -->
         <section class="supported-section">
-            <h3 class="section-title"><i class="fas fa-hands-helping"></i> Didukung Oleh</h3>
-            <div class="supported-grid">
-                <div class="supported-item">
+            <h2 class="section-title fade-in">Didukung Oleh</h2>
+            <div class="supported-logos fade-in">
+                <div class="supported-logo">
                     <img src="https://c.termai.cc/i158/h6S.jpg" alt="Dana">
-                    <span>Dana</span>
                 </div>
-                <div class="supported-item">
+                <div class="supported-logo">
                     <img src="https://cdn-uploads.huggingface.co/production/uploads/noauth/k4N36Lzbff14ak3RjRJW5.jpeg" alt="Gopay">
-                    <span>Gopay</span>
                 </div>
-                <div class="supported-item">
-                    <img src="https://c.termai.cc/i166/LAsa.jpg" alt="ShoopePay">
-                    <span>ShoopePay</span>
+                <div class="supported-logo">
+                    <img src="https://c.termai.cc/i166/LAsa.jpg" alt="ShopeePay">
                 </div>
-                <div class="supported-item">
+                <div class="supported-logo">
                     <img src="https://c.termai.cc/i102/B2B.jpg" alt="SeaBank">
-                    <span>SeaBank</span>
                 </div>
             </div>
         </section>
@@ -288,35 +358,53 @@
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4><i class="fas fa-users"></i> Join Grup Saya</h4>
-                    <a href="https://chat.whatsapp.com/" class="btn-wa" target="_blank">
-                        <i class="fab fa-whatsapp"></i>
-                        <span>Join Saluran WhatsApp</span>
+                    <div class="logo footer-logo">
+                        <i class="fas fa-money-check-alt"></i>
+                        <span>Anggazyy Pay</span>
+                    </div>
+                    <p class="footer-description">
+                        Platform pembayaran digital yang aman, cepat, dan terpercaya untuk segala kebutuhan transaksi Anda.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Join Grup Kami</h4>
+                    <a href="https://wa.me/62882020034316" class="whatsapp-link" target="_blank">
+                        <i class="fab fa-whatsapp"></i> Join Saluran WhatsApp
                     </a>
+                    <p class="contact-info">
+                        <i class="fas fa-phone-alt"></i> 0882020034316
+                    </p>
                 </div>
+                
                 <div class="footer-section">
-                    <h4><i class="fas fa-shield-alt"></i> Keamanan</h4>
-                    <p>Transaksi Anda aman dan terenkripsi.</p>
-                </div>
-                <div class="footer-section">
-                    <h4><i class="fas fa-headset"></i> Bantuan</h4>
-                    <p>Hubungi: 0882-0200-34316</p>
+                    <h4>Metode Pembayaran</h4>
+                    <div class="payment-icons">
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-paypal"></i>
+                        <i class="fas fa-qrcode"></i>
+                    </div>
                 </div>
             </div>
-            <div class="footer-copyright">
-                <p><i class="far fa-copyright"></i> Copyright ❤ 2025 Anggazyy Developer. All rights reserved.</p>
+            
+            <div class="footer-bottom">
+                <p>&copy; Copyright <span class="heart">❤</span> 2025 Anggazyy Developer. Semua Hak Dilindungi.</p>
             </div>
         </footer>
-    </main>
+    </div>
 
-    <!-- Notification Toast -->
-    <div id="notification" class="notification">
-        <div class="notification-content">
-            <i class="fas fa-check-circle"></i>
-            <span id="notificationText">Berhasil disalin ke clipboard!</span>
+    <!-- Modal for Copy Notification -->
+    <div class="modal" id="copyModal">
+        <div class="modal-content">
+            <i class="fas fa-check-circle success-icon"></i>
+            <h3>Berhasil Disalin!</h3>
+            <p>Nomor rekening telah disalin ke clipboard.</p>
+            <button class="modal-close-btn">Tutup</button>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="script.js"></script>
 </body>
 </html>
