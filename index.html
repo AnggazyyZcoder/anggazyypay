@@ -215,14 +215,19 @@
                             
                             <div class="qris-input" id="qrisInput">
                                 <h4>Masukkan Nominal Pembayaran</h4>
-                                <p class="min-nominal">Minimal Rp 10.000</p>
+                                <p class="min-nominal">Minimal Rp 10.000 - Maksimal Rp 1.000.000</p>
                                 
                                 <div class="input-group">
                                     <span class="input-prefix">Rp</span>
-                                    <input type="number" id="qrisAmount" placeholder="10000" min="10000" value="10000">
+                                    <input type="number" id="qrisAmount" placeholder="10000" min="10000" max="1000000" value="10000">
                                     <div class="fee-info">
                                         <i class="fas fa-info-circle"></i>
-                                        <span class="fee-tooltip">Termasuk biaya administrasi sistem</span>
+                                        <span class="fee-tooltip">
+                                            <strong>Perhitungan Biaya:</strong><br>
+                                            • Rp 10.000 - 19.999: Biaya 0.3%<br>
+                                            • Rp 20.000 - 1.000.000: Biaya 0.7%<br>
+                                            Biaya sudah termasuk dalam total
+                                        </span>
                                     </div>
                                 </div>
                                 
@@ -244,6 +249,7 @@
                                 </div>
                                 <p class="transaction-info">
                                     Nominal: <strong id="qrisNominal">Rp 10.000</strong><br>
+                                    Biaya (0.3%): <strong id="qrisFee">Rp 300</strong><br>
                                     Total Tagihan: <strong id="qrisTotal">Rp 10.300</strong><br>
                                     ID Transaksi: <span id="transactionId">TRX-123456789</span>
                                     <button class="copy-btn small" id="copyTrxId">

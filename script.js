@@ -1,16 +1,28 @@
-// DOM Elements
+// ==============================================
+// DOM Elements - Semua Element HTML
+// ==============================================
+
+// Loading & Main
 const loadingScreen = document.getElementById('loadingScreen');
 const mainContainer = document.getElementById('mainContainer');
+
+// Header & Navigation
 const startTransactionBtn = document.getElementById('startTransaction');
-const paymentCards = document.querySelectorAll('.payment-card');
-const copyButtons = document.querySelectorAll('.copy-btn');
-const copyModal = document.getElementById('copyModal');
-const modalCloseBtn = document.querySelector('.modal-close-btn');
 const menuToggle = document.getElementById('menuToggle');
 const nav = document.querySelector('.nav');
 const navLinks = document.querySelectorAll('.nav-link');
 const historyLink = document.getElementById('historyLink');
 const historyBadge = document.getElementById('historyBadge');
+
+// Payment Cards
+const paymentCards = document.querySelectorAll('.payment-card');
+
+// Copy Buttons & Modal
+const copyButtons = document.querySelectorAll('.copy-btn');
+const copyModal = document.getElementById('copyModal');
+const modalCloseBtn = document.querySelector('.modal-close-btn');
+
+// QRIS Elements
 const qrisCard = document.querySelector('[data-method="qris"]');
 const qrisLoading = document.getElementById('qrisLoading');
 const qrisInput = document.getElementById('qrisInput');
@@ -22,12 +34,15 @@ const feeAmount = document.getElementById('feeAmount');
 const totalAmount = document.getElementById('totalAmount');
 const qrisCanvas = document.getElementById('qrisCanvas');
 const qrisNominal = document.getElementById('qrisNominal');
+const qrisFee = document.getElementById('qrisFee');
 const qrisTotal = document.getElementById('qrisTotal');
 const transactionIdElement = document.getElementById('transactionId');
 const copyTrxIdBtn = document.getElementById('copyTrxId');
 const expiryInfo = document.getElementById('expiryInfo');
 const downloadQRISBtn = document.getElementById('downloadQRIS');
 const iHavePaidBtn = document.getElementById('iHavePaid');
+
+// Stats Elements
 const statNumbers = document.querySelectorAll('.stat-number');
 const fadeElements = document.querySelectorAll('.fade-in');
 
@@ -48,28 +63,49 @@ const confirmModal = document.getElementById('confirmModal');
 const cancelClear = document.getElementById('cancelClear');
 const confirmClear = document.getElementById('confirmClear');
 
-// QRIS Configuration
+// ==============================================
+// KONFIGURASI SISTEM
+// ==============================================
+
+// QRIS API Configuration
 const QRIS_API_URL = 'https://qris.miraipedia.my.id/api/convert';
 const QRIS_STATIC_STRING = '00020101021126610014COM.GO-JEK.WWW01189360091438478660180210G8478660180303UMI51440014ID.CO.QRIS.WWW0215ID10254635735230303UMI5204581653033605802ID5912Anggazyy Pay6008MINAHASA61059566162070703A0163041DD9';
 
-// Global Variables
+// Fee Configuration - SESUAI PERMINTAAN BARU
+const FEE_CONFIG = {
+    // 10.000 - 19.999: Tambah 300 di belakang
+    low: { 
+        min: 10000, 
+        max: 19999, 
+        fixedFee: 300, // Selalu 300 untuk range ini
+        description: "10k-20k: +300"
+    },
+    // 20.000 - 1.000.000: Tambah 700 di belakang
+    high: { 
+        min: 20000, 
+        max: 1000000, 
+        fixedFee: 700, // Selalu 700 untuk range ini
+        description: "20k-1jt: +700"
+    }
+};
+
+// ==============================================
+// VARIABEL GLOBAL
+// ==============================================
 let activePaymentCard = null;
 let qrisExpiryTimer = null;
 let currentTransactionId = null;
 let currentQRISData = null;
-let qrCodeInstance = null;
 let transactionHistory = [];
 let transactionChart = null;
 
-// Fee Configuration
-const FEE_CONFIG = {
-    low: { threshold: 10000, feeRate: 0.003 }, // 0.3% untuk 10k - 19,999
-    high: { threshold: 20000, feeRate: 0.007 }  // 0.7% untuk 20k ke atas
-};
+// ==============================================
+// FUNGSI INISIALISASI
+// ==============================================
 
 // Initialize the website
 function init() {
-    console.log('Website Anggazyy Pay dimuat');
+    console.log('🎯 Website Anggazyy Pay dimuat');
     
     // Load history from localStorage
     loadTransactionHistory();
@@ -84,7 +120,7 @@ function init() {
     setTimeout(() => {
         loadingScreen.style.opacity = '0';
         loadingScreen.style.visibility = 'hidden';
-        console.log('Loading screen ditutup');
+        console.log('✅ Loading screen ditutup');
     }, 3000);
     
     // Initialize event listeners
@@ -100,16 +136,121 @@ function init() {
     const currentYear = new Date().getFullYear();
     document.querySelector('.footer-bottom p').innerHTML = `&copy; Copyright <span class="heart">❤</span> ${currentYear} Anggazyy Developer. Semua Hak Dilindungi.`;
     
-    console.log('Website siap digunakan');
+    console.log('🚀 Website siap digunakan');
+    
+    // Test perhitungan fee
+    testFeeCalculation();
 }
+
+// ==============================================
+// FUNGSI PERHITUNGAN FEE - DIPERBAIKI SESUAI PERMINTAAN!
+// ==============================================
+
+// Calculate fee based on amount - VERSI BARU YANG BENAR
+function calculateFee(amount) {
+    const amountNum = parseInt(amount);
+    
+    // Validasi minimal amount
+    if (amountNum < 10000) {
+        return {
+            originalAmount: amountNum,
+            fee: 0,
+            feeRate: 0,
+            totalAmount: amountNum,
+            description: "Minimum Rp 10.000",
+            error: 'Minimum Rp 10.000'
+        };
+    }
+    
+    // Validasi maksimal amount
+    if (amountNum > 1000000) {
+        return {
+            originalAmount: amountNum,
+            fee: 0,
+            feeRate: 0,
+            totalAmount: amountNum,
+            description: "Maksimal Rp 1.000.000",
+            error: 'Maksimal Rp 1.000.000'
+        };
+    }
+    
+    let fee = 0;
+    let feeDescription = "";
+    
+    // Tentukan fee berdasarkan range
+    if (amountNum >= FEE_CONFIG.high.min) {
+        // 20.000 ke atas: Tambah 700
+        fee = FEE_CONFIG.high.fixedFee;
+        feeDescription = FEE_CONFIG.high.description;
+    } else if (amountNum >= FEE_CONFIG.low.min) {
+        // 10.000 - 19.999: Tambah 300
+        fee = FEE_CONFIG.low.fixedFee;
+        feeDescription = FEE_CONFIG.low.description;
+    }
+    
+    const total = amountNum + fee;
+    
+    // Hitung persentase fee untuk display saja
+    const feePercentage = ((fee / amountNum) * 100).toFixed(1);
+    
+    return {
+        originalAmount: amountNum,
+        fee: fee,
+        feeRate: feePercentage,
+        feeDescription: feeDescription,
+        totalAmount: total,
+        error: null
+    };
+}
+
+// Update fee calculation display
+function updateFeeCalculation() {
+    const amount = qrisAmountInput.value;
+    
+    if (!amount || amount < 10000) {
+        // Reset display
+        displayAmount.textContent = '0';
+        feeAmount.textContent = '0 (0%)';
+        totalAmount.textContent = 'Rp 0';
+        return;
+    }
+    
+    if (amount > 1000000) {
+        displayAmount.textContent = '0';
+        feeAmount.textContent = '0 (0%)';
+        totalAmount.textContent = 'Maksimal 1.000.000';
+        return;
+    }
+    
+    const calculation = calculateFee(amount);
+    
+    // Update display
+    if (calculation.error) {
+        alert(calculation.error);
+        qrisAmountInput.value = '10000';
+        updateFeeCalculation(); // Recalculate with default
+        return;
+    }
+    
+    displayAmount.textContent = calculation.originalAmount.toLocaleString('id-ID');
+    feeAmount.textContent = `${calculation.fee.toLocaleString('id-ID')} (${calculation.feeRate}%)`;
+    totalAmount.textContent = `Rp ${calculation.totalAmount.toLocaleString('id-ID')}`;
+    
+    // Debug log
+    console.log(`💰 Perhitungan Fee: ${calculation.originalAmount} + ${calculation.fee} = ${calculation.totalAmount} (${calculation.feeDescription})`);
+}
+
+// ==============================================
+// FUNGSI EVENT LISTENERS
+// ==============================================
 
 // Set up all event listeners
 function setupEventListeners() {
-    console.log('Setting up event listeners...');
+    console.log('🔧 Setting up event listeners...');
     
     // Start transaction button
     startTransactionBtn.addEventListener('click', () => {
-        console.log('Mulai Bertransaksi diklik');
+        console.log('📱 Mulai Bertransaksi diklik');
         document.getElementById('payment').scrollIntoView({ 
             behavior: 'smooth',
             block: 'start'
@@ -125,16 +266,9 @@ function setupEventListeners() {
     // Payment cards toggle
     paymentCards.forEach(card => {
         const header = card.querySelector('.payment-header');
-        const toggle = card.querySelector('.payment-toggle');
         
         header.addEventListener('click', (e) => {
-            console.log('Payment card diklik:', card.dataset.method);
-            
-            // Jika sedang loading QRIS, jangan tutup
-            if (card.classList.contains('loading')) {
-                console.log('Card sedang loading, tidak bisa ditutup');
-                return;
-            }
+            console.log('💳 Payment card diklik:', card.dataset.method);
             
             // Jika klik pada tombol copy, jangan tutup card
             if (e.target.closest('.copy-btn') || e.target.closest('.close-details-btn')) {
@@ -167,7 +301,7 @@ function setupEventListeners() {
         if (closeBtn) {
             closeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                console.log('Tombol close diklik');
+                console.log('❌ Tombol close diklik');
                 closePaymentCard(card);
                 if (activePaymentCard === card) {
                     activePaymentCard = null;
@@ -182,7 +316,7 @@ function setupEventListeners() {
             button.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const text = button.getAttribute('data-clipboard-text');
-                console.log('Copy nomor rekening:', text);
+                console.log('📋 Copy nomor rekening:', text);
                 copyToClipboard(text);
                 showCopyModal();
             });
@@ -192,7 +326,7 @@ function setupEventListeners() {
     // Tombol copy ID transaksi
     copyTrxIdBtn.addEventListener('click', () => {
         const text = transactionIdElement.textContent;
-        console.log('Copy ID transaksi:', text);
+        console.log('📋 Copy ID transaksi:', text);
         copyToClipboard(text);
         showCopyModal();
     });
@@ -200,7 +334,7 @@ function setupEventListeners() {
     // Tombol close modal
     modalCloseBtn.addEventListener('click', () => {
         copyModal.classList.remove('active');
-        console.log('Modal ditutup');
+        console.log('📦 Modal ditutup');
     });
     
     // Menu toggle untuk mobile
@@ -209,13 +343,13 @@ function setupEventListeners() {
         menuToggle.innerHTML = nav.classList.contains('active') 
             ? '<i class="fas fa-times"></i>' 
             : '<i class="fas fa-bars"></i>';
-        console.log('Menu toggle diklik');
+        console.log('☰ Menu toggle diklik');
     });
     
     // Nav link clicks
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
-            console.log('Nav link diklik:', link.getAttribute('href'));
+            console.log('🔗 Nav link diklik:', link.getAttribute('href'));
             
             // Update active link
             navLinks.forEach(l => l.classList.remove('active'));
@@ -300,7 +434,7 @@ function setupEventListeners() {
             
             const targetElement = document.querySelector(targetId);
             if (targetElement) {
-                console.log('Scrolling ke:', targetId);
+                console.log('🔍 Scrolling ke:', targetId);
                 targetElement.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
@@ -309,49 +443,16 @@ function setupEventListeners() {
         });
     });
     
-    console.log('Event listeners berhasil di setup');
+    console.log('✅ Event listeners berhasil di setup');
 }
 
-// Calculate fee based on amount
-function calculateFee(amount) {
-    const amountNum = parseInt(amount);
-    let feeRate;
-    
-    if (amountNum >= FEE_CONFIG.high.threshold) {
-        feeRate = FEE_CONFIG.high.feeRate; // 0.7% untuk 20k ke atas
-    } else if (amountNum >= FEE_CONFIG.low.threshold) {
-        feeRate = FEE_CONFIG.low.feeRate; // 0.3% untuk 10k - 19,999
-    } else {
-        feeRate = 0; // Tidak ada fee untuk di bawah 10k
-    }
-    
-    const fee = Math.round(amountNum * feeRate);
-    const total = amountNum + fee;
-    
-    return {
-        originalAmount: amountNum,
-        fee: fee,
-        feeRate: feeRate * 100, // dalam persen
-        totalAmount: total
-    };
-}
-
-// Update fee calculation display
-function updateFeeCalculation() {
-    const amount = qrisAmountInput.value;
-    if (!amount || amount < 10000) return;
-    
-    const calculation = calculateFee(amount);
-    
-    // Update display
-    displayAmount.textContent = calculation.originalAmount.toLocaleString('id-ID');
-    feeAmount.textContent = `${calculation.fee.toLocaleString('id-ID')} (${calculation.feeRate}%)`;
-    totalAmount.textContent = `Rp ${calculation.totalAmount.toLocaleString('id-ID')}`;
-}
+// ==============================================
+// FUNGSI ANIMASI
+// ==============================================
 
 // Initialize animations
 function initAnimations() {
-    console.log('Inisialisasi animasi...');
+    console.log('🎬 Inisialisasi animasi...');
     
     // Fade in elements on scroll
     const fadeInOnScroll = () => {
@@ -370,12 +471,12 @@ function initAnimations() {
     
     // Check on scroll
     window.addEventListener('scroll', fadeInOnScroll);
-    console.log('Animasi scroll diaktifkan');
+    console.log('✅ Animasi scroll diaktifkan');
 }
 
 // Initialize stats counter animation
 function initStatsCounter() {
-    console.log('Inisialisasi stat counter...');
+    console.log('📊 Inisialisasi stat counter...');
     
     const observerOptions = {
         threshold: 0.5
@@ -384,7 +485,7 @@ function initStatsCounter() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                console.log('Stats section terlihat, mulai animasi counter');
+                console.log('📈 Stats section terlihat, mulai animasi counter');
                 
                 statNumbers.forEach(stat => {
                     const target = parseFloat(stat.getAttribute('data-count'));
@@ -397,7 +498,7 @@ function initStatsCounter() {
                         if (current >= target) {
                             current = target;
                             clearInterval(timer);
-                            console.log('Counter selesai untuk:', stat.parentElement.querySelector('.stat-label').textContent);
+                            console.log('✅ Counter selesai untuk:', stat.parentElement.querySelector('.stat-label').textContent);
                         }
                         
                         // Format angka dengan tanda + jika perlu
@@ -421,13 +522,17 @@ function initStatsCounter() {
     const statsSection = document.getElementById('stats');
     if (statsSection) {
         observer.observe(statsSection);
-        console.log('Stats section sedang di observe');
+        console.log('👀 Stats section sedang di observe');
     }
 }
 
-// Open payment card with animation
+// ==============================================
+// FUNGSI PAYMENT CARD
+// ==============================================
+
+// Buka payment card dengan animasi
 function openPaymentCard(card) {
-    console.log('Membuka payment card:', card.dataset.method);
+    console.log('🔓 Membuka payment card:', card.dataset.method);
     card.classList.add('active');
     
     // Tampilkan nomor rekening asli dengan animasi
@@ -453,7 +558,7 @@ function openPaymentCard(card) {
 
 // Tutup payment card dengan animasi
 function closePaymentCard(card) {
-    console.log('Menutup payment card:', card.dataset.method);
+    console.log('🔒 Menutup payment card:', card.dataset.method);
     card.classList.remove('active');
     
     // Sembunyikan nomor rekening asli dengan animasi
@@ -484,7 +589,7 @@ function closePaymentCard(card) {
 
 // Handle QRIS card opening
 function handleQRISCardOpen() {
-    console.log('Membuka card QRIS');
+    console.log('🔓 Membuka card QRIS');
     
     // Reset QRIS state
     qrisLoading.style.display = 'block';
@@ -498,7 +603,7 @@ function handleQRISCardOpen() {
     setTimeout(() => {
         qrisLoading.style.display = 'none';
         qrisInput.style.display = 'block';
-        console.log('QRIS loading selesai, tampilkan input');
+        console.log('✅ QRIS loading selesai, tampilkan input');
         
         // Focus pada input amount
         setTimeout(() => {
@@ -510,7 +615,7 @@ function handleQRISCardOpen() {
 
 // Reset QRIS state
 function resetQRISState() {
-    console.log('Reset QRIS state');
+    console.log('🔄 Reset QRIS state');
     
     // Hentikan timer kedaluwarsa
     if (qrisExpiryTimer) {
@@ -521,48 +626,73 @@ function resetQRISState() {
     // Reset variabel
     currentTransactionId = null;
     currentQRISData = null;
-    qrCodeInstance = null;
     
     // Clear canvas
     const ctx = qrisCanvas.getContext('2d');
     ctx.clearRect(0, 0, qrisCanvas.width, qrisCanvas.height);
 }
 
+// ==============================================
+// FUNGSI GENERATE QRIS
+// ==============================================
+
 // Generate QRIS
 async function generateQRIS() {
     const amount = qrisAmountInput.value;
     
-    console.log('Generate QRIS dengan nominal:', amount);
+    console.log('🔄 Generate QRIS dengan nominal:', amount);
     
     // Validasi amount
     if (!amount || amount < 10000) {
-        alert('Masukkan nominal minimal Rp 10.000');
+        alert('❌ Masukkan nominal minimal Rp 10.000');
+        qrisAmountInput.focus();
+        qrisAmountInput.value = '10000';
+        updateFeeCalculation();
+        return;
+    }
+    
+    if (amount > 1000000) {
+        alert('❌ Maksimal nominal Rp 1.000.000');
         qrisAmountInput.focus();
         return;
     }
     
-    // Hitung fee
+    // Hitung fee (SISTEM BARU)
     const feeCalculation = calculateFee(amount);
+    
+    // Validasi hasil perhitungan fee
+    if (feeCalculation.error) {
+        alert(feeCalculation.error);
+        qrisAmountInput.focus();
+        return;
+    }
+    
+    // Tampilkan detail perhitungan
+    console.log('💰 PERHITUNGAN FEE SISTEM BARU:');
+    console.log(`  Nominal: Rp ${feeCalculation.originalAmount.toLocaleString('id-ID')}`);
+    console.log(`  Fee: Rp ${feeCalculation.fee.toLocaleString('id-ID')} (${feeCalculation.feeDescription})`);
+    console.log(`  Total: Rp ${feeCalculation.totalAmount.toLocaleString('id-ID')}`);
+    console.log(`  Rumus: ${feeCalculation.originalAmount} + ${feeCalculation.fee} = ${feeCalculation.totalAmount}`);
     
     // Tampilkan loading state
     generateQRISBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menggenerate...';
     generateQRISBtn.disabled = true;
     
     try {
-        console.log('Mengirim request ke API QRIS...');
+        console.log('📡 Mengirim request ke API QRIS...');
         
         // Gunakan total amount (termasuk fee) untuk API
         const totalAmountForAPI = feeCalculation.totalAmount.toString();
         
         // Persiapkan data request
         const requestData = {
-            amount: totalAmountForAPI, // Kirim total amount (termasuk fee)
+            amount: totalAmountForAPI,
             qris: QRIS_STATIC_STRING
         };
         
-        console.log('Request data:', requestData);
+        console.log('📦 Request data ke API:', requestData);
         
-        // Kirim request ke API QRIS dengan timeout
+        // Kirim request ke API QRIS
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
         
@@ -578,22 +708,22 @@ async function generateQRIS() {
         clearTimeout(timeoutId);
         
         const data = await response.json();
-        console.log('Response dari API:', data);
+        console.log('✅ Response dari API:', data);
         
-        // Simulasi delay 3 detik sesuai requirement
+        // Simulasi delay 3 detik
         setTimeout(() => {
             if (data.status === 'success') {
-                console.log('QRIS berhasil digenerate');
+                console.log('🎉 QRIS berhasil digenerate');
                 handleQRISSuccess(data, feeCalculation);
             } else {
-                console.error('API Error:', data.message);
-                // Fallback ke QRIS lokal jika API error
+                console.error('❌ API Error:', data.message);
+                // Fallback ke QRIS lokal
                 handleQRISFallback(feeCalculation);
             }
         }, 3000);
         
     } catch (error) {
-        console.error('Error generating QRIS:', error);
+        console.error('❌ Error generating QRIS:', error);
         
         // Simulasi delay 3 detik
         setTimeout(() => {
@@ -621,7 +751,9 @@ function handleQRISSuccess(data, feeCalculation) {
     
     // Update UI dengan hasil QRIS
     qrisNominal.textContent = 'Rp ' + feeCalculation.originalAmount.toLocaleString('id-ID');
+    qrisFee.textContent = 'Rp ' + feeCalculation.fee.toLocaleString('id-ID');
     qrisTotal.textContent = 'Rp ' + feeCalculation.totalAmount.toLocaleString('id-ID');
+    
     transactionIdElement.textContent = currentTransactionId;
     
     // Hitung waktu kedaluwarsa (5 menit dari sekarang)
@@ -640,16 +772,27 @@ function handleQRISSuccess(data, feeCalculation) {
     
     // Simpan transaksi ke history
     saveTransactionToHistory(currentTransactionId, feeCalculation, 'pending', expiryTime);
+    
+    // Tampilkan alert dengan rincian
+    setTimeout(() => {
+        alert(
+            `✅ QRIS Berhasil Digenerate!\n\n` +
+            `Nominal: Rp ${feeCalculation.originalAmount.toLocaleString('id-ID')}\n` +
+            `Biaya: Rp ${feeCalculation.fee.toLocaleString('id-ID')} (${feeCalculation.feeDescription})\n` +
+            `Total: Rp ${feeCalculation.totalAmount.toLocaleString('id-ID')}\n\n` +
+            `Contoh: ${feeCalculation.originalAmount} + ${feeCalculation.fee} = ${feeCalculation.totalAmount}`
+        );
+    }, 500);
 }
 
-// Handle QRIS fallback jika API error
+// Handle QRIS fallback
 function handleQRISFallback(feeCalculation) {
-    console.log('Menggunakan QRIS fallback');
+    console.log('🔄 Menggunakan QRIS fallback');
     
     // Generate transaction ID
     currentTransactionId = 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     
-    // Buat QRIS string dinamis (simulasi)
+    // Buat QRIS string dinamis
     const dynamicQRIS = generateDynamicQRISString(feeCalculation.totalAmount);
     currentQRISData = {
         qrisString: dynamicQRIS,
@@ -662,7 +805,9 @@ function handleQRISFallback(feeCalculation) {
     
     // Update UI dengan hasil QRIS
     qrisNominal.textContent = 'Rp ' + feeCalculation.originalAmount.toLocaleString('id-ID');
+    qrisFee.textContent = 'Rp ' + feeCalculation.fee.toLocaleString('id-ID');
     qrisTotal.textContent = 'Rp ' + feeCalculation.totalAmount.toLocaleString('id-ID');
+    
     transactionIdElement.textContent = currentTransactionId;
     
     // Hitung waktu kedaluwarsa (5 menit dari sekarang)
@@ -681,6 +826,17 @@ function handleQRISFallback(feeCalculation) {
     
     // Simpan transaksi ke history
     saveTransactionToHistory(currentTransactionId, feeCalculation, 'pending', expiryTime);
+    
+    // Tampilkan alert dengan rincian
+    setTimeout(() => {
+        alert(
+            `✅ QRIS Berhasil Digenerate!\n\n` +
+            `Nominal: Rp ${feeCalculation.originalAmount.toLocaleString('id-ID')}\n` +
+            `Biaya: Rp ${feeCalculation.fee.toLocaleString('id-ID')} (${feeCalculation.feeDescription})\n` +
+            `Total: Rp ${feeCalculation.totalAmount.toLocaleString('id-ID')}\n\n` +
+            `Contoh: ${feeCalculation.originalAmount} + ${feeCalculation.fee} = ${feeCalculation.totalAmount}`
+        );
+    }, 500);
 }
 
 // Reset generate button state
@@ -689,18 +845,20 @@ function resetGenerateButton() {
     generateQRISBtn.disabled = false;
 }
 
-// Generate dynamic QRIS string (simulasi)
+// Generate dynamic QRIS string
 function generateDynamicQRISString(amount) {
-    // Format: 00020101021226650014ID.CO.QRIS.WWW01189360091100000000000215204082010303UMI51440014ID.CO.QRIS.WWW0215ID10200169230303UMI5204581253033605405[AMOUNT]5802ID5912Anggazyy Pay6008MINAHASA61059566162070703.016304
     const amountStr = amount.toString().padStart(5, '0');
     return `00020101021226650014ID.CO.QRIS.WWW01189360091100000000000215204082010303UMI51440014ID.CO.QRIS.WWW0215ID10200169230303UMI5204581253033605405${amountStr}5802ID5912Anggazyy Pay6008MINAHASA61059566162070703.016304`;
 }
 
+// ==============================================
+// FUNGSI QR CODE
+// ==============================================
+
 // Display QR code from base64
 function displayQRCodeFromBase64(base64String, amount) {
-    console.log('Menampilkan QR code dari base64');
+    console.log('🖼️ Menampilkan QR code dari base64');
     
-    // Buat image dari base64
     const img = new Image();
     img.onload = function() {
         const ctx = qrisCanvas.getContext('2d');
@@ -711,18 +869,17 @@ function displayQRCodeFromBase64(base64String, amount) {
         // Gambar QR code
         ctx.drawImage(img, 0, 0, qrisCanvas.width, qrisCanvas.height);
         
-        // Tambahkan teks nominal di bawah QR code
+        // Tambahkan teks nominal
         ctx.fillStyle = '#8a2be2';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(`Rp ${parseInt(amount).toLocaleString('id-ID')}`, qrisCanvas.width / 2, qrisCanvas.height - 10);
         
-        console.log('QR code berhasil ditampilkan');
+        console.log('✅ QR code berhasil ditampilkan');
     };
     
     img.onerror = function() {
-        console.error('Gagal memuat gambar QR code dari base64');
-        // Fallback ke generate QR code
+        console.error('❌ Gagal memuat gambar QR code');
         generateQRCode(currentQRISData.qrisString, amount);
     };
     
@@ -731,14 +888,14 @@ function displayQRCodeFromBase64(base64String, amount) {
 
 // Generate QR code menggunakan library
 function generateQRCode(qrisString, amount) {
-    console.log('Generate QR code untuk string:', qrisString.substring(0, 50) + '...');
+    console.log('🔄 Generate QR code');
     
     try {
-        // Clear canvas terlebih dahulu
+        // Clear canvas
         const ctx = qrisCanvas.getContext('2d');
         ctx.clearRect(0, 0, qrisCanvas.width, qrisCanvas.height);
         
-        // Buat QR code menggunakan library qrcode-generator
+        // Buat QR code
         const qr = qrcode(0, 'L');
         qr.addData(qrisString);
         qr.make();
@@ -750,7 +907,7 @@ function generateQRCode(qrisString, amount) {
         
         // Sesuaikan canvas size
         qrisCanvas.width = size;
-        qrisCanvas.height = size + 30; // Tambahan untuk teks
+        qrisCanvas.height = size + 30;
         
         // Isi background putih
         ctx.fillStyle = '#ffffff';
@@ -775,31 +932,11 @@ function generateQRCode(qrisString, amount) {
         ctx.textAlign = 'center';
         ctx.fillText(`Rp ${parseInt(amount).toLocaleString('id-ID')}`, qrisCanvas.width / 2, qrisCanvas.height - 10);
         
-        // Tambahkan logo kecil di tengah QR code
-        const logoSize = 30;
-        const centerX = qrisCanvas.width / 2;
-        const centerY = qrisCanvas.height / 2 - 15;
-        
-        // Background bulat untuk logo
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, logoSize/2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Gambar logo wallet
-        ctx.fillStyle = '#8a2be2';
-        ctx.font = 'bold 20px "Font Awesome 5 Free"';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('💰', centerX, centerY);
-        
-        console.log('QR code berhasil digenerate');
+        console.log('✅ QR code berhasil digenerate');
         return true;
         
     } catch (error) {
-        console.error('Error generating QR code:', error);
-        
-        // Fallback ke QR code sederhana
+        console.error('❌ Error generating QR code:', error);
         generateSimpleQRCode(amount);
         return false;
     }
@@ -807,7 +944,7 @@ function generateQRCode(qrisString, amount) {
 
 // Generate simple QR code (fallback)
 function generateSimpleQRCode(amount) {
-    console.log('Membuat simple QR code fallback');
+    console.log('🔄 Membuat simple QR code fallback');
     
     const ctx = qrisCanvas.getContext('2d');
     const size = 250;
@@ -845,9 +982,13 @@ function generateSimpleQRCode(amount) {
     ctx.fillText(`Rp ${parseInt(amount).toLocaleString('id-ID')}`, size / 2, size - 20);
 }
 
+// ==============================================
+// FUNGSI EXPIRY TIMER
+// ==============================================
+
 // Start expiry timer
 function startExpiryTimer(expiryTime) {
-    console.log('Memulai timer kedaluwarsa:', expiryTime);
+    console.log('⏰ Memulai timer kedaluwarsa:', expiryTime);
     
     // Update display setiap detik
     qrisExpiryTimer = setInterval(() => {
@@ -904,12 +1045,16 @@ function updateExpiryDisplay(expiryTime) {
     expiryInfo.textContent = `Kedaluwarsa dalam: ${diffMins}:${diffSecs.toString().padStart(2, '0')} menit`;
 }
 
+// ==============================================
+// FUNGSI TRANSAKSI
+// ==============================================
+
 // Mark transaction as paid
 function markAsPaid() {
-    console.log('Saya Sudah Bayar diklik');
+    console.log('💳 Saya Sudah Bayar diklik');
     
     if (!currentTransactionId) {
-        alert('Tidak ada transaksi aktif');
+        alert('❌ Tidak ada transaksi aktif');
         return;
     }
     
@@ -924,7 +1069,7 @@ function markAsPaid() {
     
     // Redirect ke WhatsApp
     const whatsappUrl = 'https://wa.me/62882020034316';
-    console.log('Membuka WhatsApp:', whatsappUrl);
+    console.log('📱 Membuka WhatsApp:', whatsappUrl);
     window.open(whatsappUrl, '_blank');
     
     // Tutup detail QRIS setelah delay
@@ -939,18 +1084,18 @@ function markAsPaid() {
 // Download QRIS image
 function downloadQRIS() {
     if (!qrisCanvas) {
-        console.error('Canvas QRIS tidak ditemukan');
-        alert('QRIS belum digenerate');
+        console.error('❌ Canvas QRIS tidak ditemukan');
+        alert('❌ QRIS belum digenerate');
         return;
     }
     
     try {
-        console.log('Mendownload QRIS...');
+        console.log('📥 Mendownload QRIS...');
         
         // Buat canvas sementara dengan resolusi lebih tinggi
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        const scale = 2; // Scale 2x untuk kualitas lebih baik
+        const scale = 2;
         
         tempCanvas.width = qrisCanvas.width * scale;
         tempCanvas.height = qrisCanvas.height * scale;
@@ -977,14 +1122,14 @@ function downloadQRIS() {
         link.click();
         document.body.removeChild(link);
         
-        console.log('QRIS berhasil didownload:', filename);
+        console.log('✅ QRIS berhasil didownload:', filename);
         
         // Tampilkan feedback
         showDownloadFeedback();
         
     } catch (error) {
-        console.error('Error downloading QRIS:', error);
-        alert('Gagal mendownload QRIS. Silakan coba lagi.');
+        console.error('❌ Error downloading QRIS:', error);
+        alert('❌ Gagal mendownload QRIS. Silakan coba lagi.');
     }
 }
 
@@ -1002,12 +1147,16 @@ function showDownloadFeedback() {
     }, 2000);
 }
 
+// ==============================================
+// FUNGSI UTILITY
+// ==============================================
+
 // Copy text to clipboard
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        console.log('Text berhasil disalin ke clipboard:', text);
+        console.log('✅ Text berhasil disalin:', text);
     }).catch(err => {
-        console.error('Gagal menyalin text: ', err);
+        console.error('❌ Gagal menyalin text:', err);
         // Fallback method
         const textArea = document.createElement('textarea');
         textArea.value = text;
@@ -1015,33 +1164,34 @@ function copyToClipboard(text) {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        console.log('Text disalin menggunakan fallback method');
     });
 }
 
 // Show copy success modal
 function showCopyModal() {
-    console.log('Menampilkan modal copy');
+    console.log('📦 Menampilkan modal copy');
     copyModal.classList.add('active');
     
     // Auto close setelah 2 detik
     setTimeout(() => {
         copyModal.classList.remove('active');
-        console.log('Modal copy ditutup otomatis');
+        console.log('📦 Modal copy ditutup');
     }, 2000);
 }
 
-// ==================== HISTORY TRANSACTION SYSTEM ====================
+// ==============================================
+// SISTEM HISTORY TRANSAKSI
+// ==============================================
 
 // Load transaction history from localStorage
 function loadTransactionHistory() {
     const savedHistory = localStorage.getItem('anggazyyPayHistory');
     if (savedHistory) {
         transactionHistory = JSON.parse(savedHistory);
-        console.log('History loaded:', transactionHistory.length, 'transactions');
+        console.log('📚 History loaded:', transactionHistory.length, 'transactions');
     } else {
         transactionHistory = [];
-        console.log('No history found, initializing empty array');
+        console.log('📚 No history found');
     }
     
     // Update display
@@ -1056,17 +1206,18 @@ function saveTransactionToHistory(transactionId, feeCalculation, status, expiryT
         originalAmount: feeCalculation.originalAmount,
         fee: feeCalculation.fee,
         feeRate: feeCalculation.feeRate,
+        feeDescription: feeCalculation.feeDescription,
         totalAmount: feeCalculation.totalAmount,
-        status: status, // 'pending', 'success', 'expired'
+        status: status,
         createdAt: new Date().toISOString(),
         expiryTime: expiryTime.toISOString(),
         paidAt: status === 'success' ? new Date().toISOString() : null
     };
     
-    transactionHistory.unshift(transaction); // Add to beginning
+    transactionHistory.unshift(transaction);
     saveHistoryToStorage();
     
-    console.log('Transaction saved to history:', transaction);
+    console.log('💾 Transaction saved:', transaction);
     
     // Update UI
     updateHistoryBadge();
@@ -1085,7 +1236,7 @@ function updateTransactionStatus(transactionId, newStatus) {
         }
         saveHistoryToStorage();
         
-        console.log('Transaction status updated:', transactionId, '->', newStatus);
+        console.log('🔄 Status updated:', transactionId, '->', newStatus);
         
         // Update UI
         renderHistoryList();
@@ -1097,7 +1248,7 @@ function updateTransactionStatus(transactionId, newStatus) {
 // Save history to localStorage
 function saveHistoryToStorage() {
     localStorage.setItem('anggazyyPayHistory', JSON.stringify(transactionHistory));
-    console.log('History saved to storage');
+    console.log('💾 History saved to storage');
 }
 
 // Update history badge
@@ -1168,7 +1319,11 @@ function renderHistoryList(filter = 'all', searchQuery = '') {
                     <span class="detail-value">Rp ${transaction.originalAmount.toLocaleString('id-ID')}</span>
                 </div>
                 <div class="history-detail">
-                    <span class="detail-label">Total + Fee</span>
+                    <span class="detail-label">Biaya</span>
+                    <span class="detail-value">Rp ${transaction.fee.toLocaleString('id-ID')}</span>
+                </div>
+                <div class="history-detail">
+                    <span class="detail-label">Total</span>
                     <span class="detail-value">Rp ${transaction.totalAmount.toLocaleString('id-ID')}</span>
                 </div>
                 <div class="history-detail">
@@ -1193,7 +1348,7 @@ function renderHistoryList(filter = 'all', searchQuery = '') {
         </div>
     `).join('');
     
-    // Add event listeners to detail buttons
+    // Add event listeners
     document.querySelectorAll('.view-detail').forEach(button => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1202,7 +1357,6 @@ function renderHistoryList(filter = 'all', searchQuery = '') {
         });
     });
     
-    // Add event listeners to mark paid buttons
     document.querySelectorAll('.mark-paid').forEach(button => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1211,7 +1365,6 @@ function renderHistoryList(filter = 'all', searchQuery = '') {
         });
     });
     
-    // Add event listeners to history items
     document.querySelectorAll('.history-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (!e.target.closest('.action-btn')) {
@@ -1317,8 +1470,8 @@ function showTransactionDetail(transactionId) {
             <span class="detail-value">Rp ${transaction.originalAmount.toLocaleString('id-ID')}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Biaya (${transaction.feeRate}%)</span>
-            <span class="detail-value">Rp ${transaction.fee.toLocaleString('id-ID')}</span>
+            <span class="detail-label">Biaya</span>
+            <span class="detail-value">Rp ${transaction.fee.toLocaleString('id-ID')} (${transaction.feeDescription})</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Total Tagihan</span>
@@ -1350,7 +1503,7 @@ function showTransactionDetail(transactionId) {
 // Mark transaction as paid
 function markTransactionAsPaid(transactionId) {
     updateTransactionStatus(transactionId, 'success');
-    alert('Transaksi berhasil ditandai sebagai sudah dibayar!');
+    alert('✅ Transaksi berhasil ditandai sebagai sudah dibayar!');
 }
 
 // Clear all history
@@ -1365,13 +1518,13 @@ function clearAllHistory() {
     updateHistoryStats();
     updateTransactionChart();
     
-    alert('Semua riwayat transaksi telah dihapus!');
+    alert('🗑️ Semua riwayat transaksi telah dihapus!');
 }
 
 // Export history
 function exportHistory() {
     if (transactionHistory.length === 0) {
-        alert('Tidak ada riwayat transaksi untuk diexport');
+        alert('❌ Tidak ada riwayat transaksi untuk diexport');
         return;
     }
     
@@ -1406,8 +1559,12 @@ function exportHistory() {
     
     URL.revokeObjectURL(url);
     
-    console.log('History exported');
+    console.log('📤 History exported');
 }
+
+// ==============================================
+// FUNGSI CHART
+// ==============================================
 
 // Initialize transaction chart
 function initTransactionChart() {
@@ -1525,12 +1682,76 @@ function updateTransactionChart() {
     transactionChart.update();
 }
 
+// ==============================================
+// FUNGSI TEST PERHITUNGAN FEE - VERSI BARU
+// ==============================================
+
+// Test function untuk verifikasi perhitungan fee SISTEM BARU
+function testFeeCalculation() {
+    console.log('🧪 TEST PERHITUNGAN FEE SISTEM BARU');
+    
+    // Test case 1: 10.000 (10k)
+    const test1 = calculateFee(10000);
+    console.log('Test 1 - 10.000:');
+    console.log(`  Expected: 10.000 + 300 = 10.300`);
+    console.log(`  Result: ${test1.originalAmount} + ${test1.fee} = ${test1.totalAmount}`);
+    console.log(`  Status: ${test1.totalAmount === 10300 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 2: 15.000
+    const test2 = calculateFee(15000);
+    console.log('Test 2 - 15.000:');
+    console.log(`  Expected: 15.000 + 300 = 15.300`);
+    console.log(`  Result: ${test2.originalAmount} + ${test2.fee} = ${test2.totalAmount}`);
+    console.log(`  Status: ${test2.totalAmount === 15300 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 3: 19.999
+    const test3 = calculateFee(19999);
+    console.log('Test 3 - 19.999:');
+    console.log(`  Expected: 19.999 + 300 = 20.299`);
+    console.log(`  Result: ${test3.originalAmount} + ${test3.fee} = ${test3.totalAmount}`);
+    console.log(`  Status: ${test3.totalAmount === 20299 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 4: 20.000
+    const test4 = calculateFee(20000);
+    console.log('Test 4 - 20.000:');
+    console.log(`  Expected: 20.000 + 700 = 20.700`);
+    console.log(`  Result: ${test4.originalAmount} + ${test4.fee} = ${test4.totalAmount}`);
+    console.log(`  Status: ${test4.totalAmount === 20700 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 5: 24.700
+    const test5 = calculateFee(24700);
+    console.log('Test 5 - 24.700:');
+    console.log(`  Expected: 24.700 + 700 = 25.400`);
+    console.log(`  Result: ${test5.originalAmount} + ${test5.fee} = ${test5.totalAmount}`);
+    console.log(`  Status: ${test5.totalAmount === 25400 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 6: 50.000
+    const test6 = calculateFee(50000);
+    console.log('Test 6 - 50.000:');
+    console.log(`  Expected: 50.000 + 700 = 50.700`);
+    console.log(`  Result: ${test6.originalAmount} + ${test6.fee} = ${test6.totalAmount}`);
+    console.log(`  Status: ${test6.totalAmount === 50700 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    // Test case 7: 100.000
+    const test7 = calculateFee(100000);
+    console.log('Test 7 - 100.000:');
+    console.log(`  Expected: 100.000 + 700 = 100.700`);
+    console.log(`  Result: ${test7.originalAmount} + ${test7.fee} = ${test7.totalAmount}`);
+    console.log(`  Status: ${test7.totalAmount === 100700 ? '✅ BENAR' : '❌ SALAH'}`);
+    
+    console.log('🎯 END TEST');
+}
+
+// ==============================================
+// INISIALISASI WEBSITE
+// ==============================================
+
 // Inisialisasi saat DOM dimuat
 document.addEventListener('DOMContentLoaded', init);
 
 // Tambahkan animasi background dinamis
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Menambahkan animasi background...');
+    console.log('🎨 Menambahkan animasi background...');
     
     const heroSection = document.querySelector('.hero-section');
     
@@ -1568,5 +1789,5 @@ document.addEventListener('DOMContentLoaded', () => {
         heroSection.appendChild(floatingElement);
     }
     
-    console.log('Animasi background selesai ditambahkan');
+    console.log('✅ Animasi background selesai');
 });
