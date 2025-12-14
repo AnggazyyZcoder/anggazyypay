@@ -1,259 +1,456 @@
-// DOM Elements
-const loadingScreen = document.getElementById('loading-screen');
-const mainContent = document.querySelector('.main-content');
-const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-const nav = document.querySelector('.nav');
-const navLinks = document.querySelectorAll('.nav-link');
-const paymentHeaders = document.querySelectorAll('.payment-header');
-const closeDetailsBtns = document.querySelectorAll('.close-details-btn');
-const copyBtns = document.querySelectorAll('.copy-btn');
-const qrisPaymentHeader = document.querySelector('[data-payment="qris"]');
-const qrisLoading = document.getElementById('qris-loading');
-const qrisContent = document.getElementById('qris-content');
-const downloadQrisBtn = document.getElementById('download-qris');
-const statValues = document.querySelectorAll('.stat-value');
-const backToTopBtn = document.querySelector('.back-to-top');
-const notification = document.getElementById('notification');
-const fadeInElements = document.querySelectorAll('.fade-in');
-
-// Loading Screen
-window.addEventListener('load', () => {
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Loading screen functionality
+    const loadingScreen = document.getElementById('loading-screen');
+    
+    // Hide loading screen after 3 seconds
     setTimeout(() => {
         loadingScreen.style.opacity = '0';
         loadingScreen.style.visibility = 'hidden';
-        
-        // Trigger animations after loading screen disappears
-        setTimeout(() => {
-            fadeInElements.forEach(element => {
-                element.classList.add('appear');
-            });
-        }, 300);
     }, 3000);
-});
 
-// Mobile Menu Toggle
-mobileMenuBtn.addEventListener('click', () => {
-    nav.classList.toggle('active');
-    mobileMenuBtn.innerHTML = nav.classList.contains('active') 
-        ? '<i class="fas fa-times"></i>' 
-        : '<i class="fas fa-bars"></i>';
-});
-
-// Close mobile menu when clicking a link
-navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        nav.classList.remove('active');
-        mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-    });
-});
-
-// Smooth Scrolling for Navigation Links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-        e.preventDefault();
+    // Initialize all components
+    initSmoothScroll();
+    initStatsCounter();
+    initPaymentToggles();
+    initCopyButtons();
+    initQRISFunctionality();
+    initNavigation();
+    initDarkModeToggle();
+    initToastNotifications();
+    
+    // Start transaction button
+    document.getElementById('start-transaction').addEventListener('click', function() {
+        document.getElementById('payment').scrollIntoView({ behavior: 'smooth' });
         
-        const targetId = this.getAttribute('href');
-        if(targetId === '#') return;
-        
-        const targetElement = document.querySelector(targetId);
-        if(targetElement) {
-            window.scrollTo({
-                top: targetElement.offsetTop - 80,
-                behavior: 'smooth'
-            });
+        // Open first payment method
+        const firstPayment = document.querySelector('.payment-header');
+        if (firstPayment && !firstPayment.classList.contains('active')) {
+            togglePaymentDetails(firstPayment);
         }
     });
 });
 
-// Payment Details Toggle
-paymentHeaders.forEach(header => {
-    header.addEventListener('click', () => {
-        const paymentCard = header.closest('.payment-card');
-        const isActive = paymentCard.classList.contains('active');
-        
-        // Close all other payment cards
-        document.querySelectorAll('.payment-card.active').forEach(card => {
-            if(card !== paymentCard) {
-                card.classList.remove('active');
+// Smooth scrolling for anchor links
+function initSmoothScroll() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             }
         });
+    });
+}
+
+// Animated stats counter
+function initStatsCounter() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const statNumber = entry.target;
+                const target = parseInt(statNumber.getAttribute('data-count'));
+                const isDecimal = target.toString().includes('.');
+                
+                animateCounter(statNumber, target, isDecimal ? 1000 : 2000);
+                observer.unobserve(statNumber);
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    statNumbers.forEach(stat => observer.observe(stat));
+}
+
+function animateCounter(element, target, duration) {
+    const start = 0;
+    const increment = target / (duration / 16); // 60fps
+    let current = start;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            element.textContent = target.toFixed(1);
+            clearInterval(timer);
+        } else {
+            element.textContent = Math.floor(current).toLocaleString();
+        }
+    }, 16);
+}
+
+// Payment details toggle functionality
+function initPaymentToggles() {
+    const paymentHeaders = document.querySelectorAll('.payment-header');
+    
+    paymentHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            togglePaymentDetails(this);
+        });
         
-        // Toggle current payment card
-        paymentCard.classList.toggle('active');
-        
-        // Special handling for QRIS
-        if(header.dataset.payment === 'qris' && !isActive) {
-            loadQRIS();
+        // Add close button functionality
+        const closeBtn = header.nextElementSibling.querySelector('.close-details');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePaymentDetails(header);
+            });
         }
     });
-});
+}
 
-// Close Details Buttons
-closeDetailsBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const paymentCard = btn.closest('.payment-card');
-        paymentCard.classList.remove('active');
-    });
-});
+function togglePaymentDetails(header) {
+    const details = header.nextElementSibling;
+    const icon = header.querySelector('.toggle-details');
+    
+    if (details.classList.contains('active')) {
+        details.classList.remove('active');
+        header.classList.remove('active');
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        // Close all other open payments
+        document.querySelectorAll('.payment-details.active').forEach(activeDetail => {
+            activeDetail.classList.remove('active');
+            activeDetail.previousElementSibling.classList.remove('active');
+            activeDetail.previousElementSibling.querySelector('.toggle-details').style.transform = 'rotate(0deg)';
+        });
+        
+        details.classList.add('active');
+        header.classList.add('active');
+        icon.style.transform = 'rotate(180deg)';
+        
+        // Special handling for QRIS
+        if (header.getAttribute('data-method') === 'qris') {
+            initQRISFlow();
+        }
+    }
+}
 
-// Copy to Clipboard
-copyBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const text = btn.getAttribute('data-clipboard-text');
-        navigator.clipboard.writeText(text).then(() => {
-            showNotification('Nomor rekening berhasil disalin!');
-        }).catch(err => {
-            console.error('Gagal menyalin teks: ', err);
-            showNotification('Gagal menyalin nomor rekening');
+// Copy buttons functionality
+function initCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const textToCopy = this.getAttribute('data-text') || 
+                              this.parentElement.querySelector('span').textContent;
+            
+            copyToClipboard(textToCopy);
+            showToast('Teks berhasil disalin ke clipboard!');
         });
     });
-});
+}
 
-// QRIS Loading Function
-function loadQRIS() {
-    qrisLoading.style.display = 'flex';
-    qrisContent.style.display = 'none';
+function copyToClipboard(text) {
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+}
+
+// QRIS functionality
+function initQRISFunctionality() {
+    // QRIS specific initialization
+    const qrisHeader = document.querySelector('.payment-header[data-method="qris"]');
+    if (qrisHeader) {
+        qrisHeader.addEventListener('click', function() {
+            // Already handled in togglePaymentDetails
+        });
+    }
+    
+    // Generate QRIS button
+    const generateBtn = document.getElementById('generate-qris');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', generateQRIS);
+    }
+    
+    // I have paid button
+    const paidBtn = document.getElementById('i-have-paid');
+    if (paidBtn) {
+        paidBtn.addEventListener('click', function() {
+            window.open('https://wa.me/62882020034316', '_blank');
+        });
+    }
+    
+    // Download QRIS button
+    const downloadBtn = document.getElementById('download-qris');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadQRIS);
+    }
+    
+    // Copy transaction ID button
+    const copyTrxBtn = document.getElementById('copy-trx');
+    if (copyTrxBtn) {
+        copyTrxBtn.addEventListener('click', function() {
+            const trxId = document.getElementById('trx-id').textContent;
+            copyToClipboard(trxId);
+            showToast('ID Transaksi berhasil disalin!');
+        });
+    }
+}
+
+let qrisExpiryTimer = null;
+let currentTrxId = null;
+
+function initQRISFlow() {
+    const qrisInput = document.getElementById('qris-input');
+    const qrisLoading = document.getElementById('qris-loading');
+    const qrisResult = document.getElementById('qris-result');
+    
+    // Show loading for 3 seconds
+    qrisLoading.style.display = 'block';
+    qrisInput.style.display = 'none';
+    qrisResult.style.display = 'none';
     
     setTimeout(() => {
         qrisLoading.style.display = 'none';
-        qrisContent.style.display = 'block';
+        qrisInput.style.display = 'block';
+        
+        // Clear any existing expiry timer
+        if (qrisExpiryTimer) {
+            clearInterval(qrisExpiryTimer);
+            qrisExpiryTimer = null;
+        }
     }, 3000);
 }
 
-// Download QRIS Button
-downloadQrisBtn.addEventListener('click', () => {
-    const qrisUrl = 'https://c.termai.cc/i180/fMam.jpg';
+async function generateQRIS() {
+    const amountInput = document.getElementById('qris-amount');
+    const amount = parseInt(amountInput.value);
     
-    // Create a temporary anchor element
+    if (!amount || amount < 10000) {
+        showToast('Masukkan nominal minimal Rp 10,000');
+        amountInput.focus();
+        return;
+    }
+    
+    const generateBtn = document.getElementById('generate-qris');
+    const qrisInput = document.getElementById('qris-input');
+    const qrisResult = document.getElementById('qris-result');
+    
+    // Show loading state
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+    generateBtn.disabled = true;
+    
+    try {
+        // Generate random transaction ID
+        currentTrxId = 'TRX-' + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('trx-id').textContent = currentTrxId;
+        
+        // Prepare API request data
+        const qrisData = {
+            amount: amount.toString(),
+            qris_statis: "00020101021126610014COM.GO-JEK.WWW01189360091438478660180210G8478660180303UMI51440014ID.CO.QRIS.WWW0215ID10254635735230303UMI5204581653033605802ID5912Anggazyy Pay6008MINAHASA61059566162070703A0163041DD9"
+        };
+        
+        // Make API call to QRIS generator
+        const response = await fetch('https://qrisku.my.id/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(qrisData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Convert base64 to image
+            const qrisImage = document.getElementById('qris-image');
+            qrisImage.src = 'data:image/png;base64,' + data.qris_base64;
+            
+            // Show result section
+            qrisInput.style.display = 'none';
+            qrisResult.style.display = 'block';
+            
+            // Start expiry timer (5 minutes)
+            startExpiryTimer(5 * 60);
+            
+            showToast('QRIS berhasil digenerate!');
+        } else {
+            throw new Error(data.message || 'Gagal generate QRIS');
+        }
+    } catch (error) {
+        console.error('Error generating QRIS:', error);
+        showToast('Gagal generate QRIS. Silakan coba lagi.');
+    } finally {
+        // Reset button state
+        generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> Generate QRIS';
+        generateBtn.disabled = false;
+    }
+}
+
+function startExpiryTimer(seconds) {
+    const timerElement = document.getElementById('expiry-timer');
+    const qrisResult = document.getElementById('qris-result');
+    const qrisInput = document.getElementById('qris-input');
+    
+    let remainingSeconds = seconds;
+    
+    // Clear any existing timer
+    if (qrisExpiryTimer) {
+        clearInterval(qrisExpiryTimer);
+    }
+    
+    // Update timer immediately
+    updateTimerDisplay(timerElement, remainingSeconds);
+    
+    // Start countdown
+    qrisExpiryTimer = setInterval(() => {
+        remainingSeconds--;
+        updateTimerDisplay(timerElement, remainingSeconds);
+        
+        if (remainingSeconds <= 0) {
+            clearInterval(qrisExpiryTimer);
+            qrisExpiryTimer = null;
+            
+            // Hide QRIS result and show input again
+            qrisResult.style.display = 'none';
+            qrisInput.style.display = 'block';
+            
+            // Clear QRIS image
+            document.getElementById('qris-image').src = '';
+            
+            // Clear amount input
+            document.getElementById('qris-amount').value = '';
+            
+            showToast('QRIS telah expired. Silakan generate ulang.');
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay(element, seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    element.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function downloadQRIS() {
+    const qrisImage = document.getElementById('qris-image');
+    const trxId = document.getElementById('trx-id').textContent;
+    
+    if (!qrisImage.src) {
+        showToast('Tidak ada QRIS untuk diunduh');
+        return;
+    }
+    
+    // Create a temporary link element
     const link = document.createElement('a');
-    link.href = qrisUrl;
-    link.download = 'qris-anggazyy-pay.jpg';
+    link.href = qrisImage.src;
+    link.download = `QRIS-${trxId}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    showNotification('QRIS berhasil diunduh!');
-});
-
-// Animated Counter for Statistics
-function animateCounters() {
-    statValues.forEach(statValue => {
-        const target = parseFloat(statValue.getAttribute('data-count'));
-        const suffix = statValue.textContent.includes('+') ? '+' : '';
-        const increment = target / 100;
-        let current = 0;
-        
-        const updateCounter = () => {
-            if(current < target) {
-                current += increment;
-                if(current > target) current = target;
-                
-                statValue.textContent = suffix === '+' 
-                    ? Math.floor(current) + suffix 
-                    : current.toFixed(1);
-                
-                setTimeout(updateCounter, 20);
-            }
-        };
-        
-        updateCounter();
-    });
+    showToast('QRIS berhasil diunduh!');
 }
 
-// Intersection Observer for Fade-in Animations and Counters
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -100px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if(entry.isIntersecting) {
-            // Fade in elements
-            entry.target.classList.add('appear');
+// Navigation functionality
+function initNavigation() {
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-links a');
+    
+    // Highlight active section in navigation
+    window.addEventListener('scroll', () => {
+        let current = '';
+        const scrollPosition = window.scrollY + 100;
+        
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
             
-            // Animate counters if it's the statistics section
-            if(entry.target.id === 'statistics') {
-                animateCounters();
+            if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                current = section.getAttribute('id');
             }
-        }
-    });
-}, observerOptions);
-
-// Observe sections for animations
-document.querySelectorAll('section').forEach(section => {
-    observer.observe(section);
-});
-
-// Back to Top Button
-window.addEventListener('scroll', () => {
-    if(window.scrollY > 500) {
-        backToTopBtn.classList.add('active');
-    } else {
-        backToTopBtn.classList.remove('active');
-    }
-    
-    // Update active nav link based on scroll position
-    updateActiveNavLink();
-});
-
-backToTopBtn.addEventListener('click', () => {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-});
-
-// Update Active Navigation Link
-function updateActiveNavLink() {
-    const scrollPosition = window.scrollY + 100;
-    
-    document.querySelectorAll('section').forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        const sectionId = section.getAttribute('id');
+        });
         
-        if(scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-                if(link.getAttribute('href') === `#${sectionId}`) {
-                    link.classList.add('active');
-                }
-            });
-        }
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${current}`) {
+                link.classList.add('active');
+            }
+        });
     });
 }
 
-// Show Notification
-function showNotification(message) {
-    const notificationText = document.querySelector('.notification-text');
-    notificationText.textContent = message;
-    notification.classList.add('active');
+// Dark mode toggle (just for show in this case since theme is dark)
+function initDarkModeToggle() {
+    const toggleBtn = document.querySelector('.dark-mode-toggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isDark = icon.classList.contains('fa-moon');
+            
+            if (isDark) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                showToast('Mode terang diaktifkan (simulasi)');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                showToast('Mode gelap diaktifkan');
+            }
+            
+            // Add a quick animation
+            this.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 300);
+        });
+    }
+}
+
+// Toast notifications
+function initToastNotifications() {
+    // Function is defined below as showToast
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    toastMessage.textContent = message;
+    toast.classList.add('show');
     
     setTimeout(() => {
-        notification.classList.remove('active');
+        toast.classList.remove('show');
     }, 3000);
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize tooltips or other plugins if needed
-    
-    // Add hover effect to payment cards
-    const paymentCards = document.querySelectorAll('.payment-card');
-    paymentCards.forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            card.style.transform = 'translateY(-10px)';
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            if(!card.classList.contains('active')) {
-                card.style.transform = 'translateY(0)';
-            }
-        });
+// Add fade-in animation on scroll
+const fadeElements = document.querySelectorAll('.fade-in');
+const fadeObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.animationPlayState = 'running';
+            fadeObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1 });
+
+fadeElements.forEach(element => {
+    element.style.animationPlayState = 'paused';
+    fadeObserver.observe(element);
+});
+
+// Add some interactive effects to payment cards
+document.querySelectorAll('.payment-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-10px) scale(1.02)';
     });
     
-    // Initialize active nav link
-    updateActiveNavLink();
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+    });
 });
