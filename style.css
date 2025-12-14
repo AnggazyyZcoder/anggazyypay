@@ -671,9 +671,36 @@ body {
     background: white;
     padding: 25px;
     border-radius: 15px;
-    display: inline-block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin-bottom: 30px;
     border: 3px solid var(--secondary);
+    min-height: 300px;
+    position: relative;
+}
+
+.qr-placeholder {
+    text-align: center;
+    color: var(--dark);
+}
+
+.qr-placeholder i {
+    font-size: 4rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.qr-placeholder p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* QR Code Canvas Styling */
+#qrContainer canvas {
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
 .action-buttons {
@@ -923,6 +950,6 @@ body {
     .btn-primary { padding: 15px 25px; font-size: 1rem; }
     .modal-content { margin: 10px; }
     .modal-body { padding: 20px; }
-    .qr-container { padding: 15px; }
+    .qr-container { padding: 15px; min-height: 250px; }
     .stat-number { font-size: 2.5rem; }
 }

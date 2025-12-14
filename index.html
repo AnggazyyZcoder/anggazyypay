@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&family=Montserrat:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- QRCode Library yang lebih stabil -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -125,7 +126,7 @@
                     <div class="payment-details">
                         <div class="qris-container" id="qrisContainer">
                             <p class="qris-info">Klik untuk generate QRIS dinamis</p>
-                            <button class="btn-qris" id="generateQRISBtn">
+                            <button class="btn-qris" id="openQRISModalBtn">
                                 <i class="fas fa-qrcode"></i>
                                 <span>Generate QRIS</span>
                             </button>
@@ -209,6 +210,10 @@
                         <div class="qris-code">
                             <div class="qr-container" id="qrContainer">
                                 <!-- QR Code akan muncul di sini -->
+                                <div class="qr-placeholder">
+                                    <i class="fas fa-qrcode"></i>
+                                    <p>QR Code akan muncul di sini</p>
+                                </div>
                             </div>
                             <div class="payment-tips qris-tips">
                                 <h5><i class="fas fa-info-circle"></i> Cara Bayar:</h5>
@@ -220,7 +225,7 @@
                                 <i class="fas fa-download"></i>
                                 <span>Download QRIS</span>
                             </button>
-                            <a href="https://wa.me/62882020034316?text=Halo%20saya%20sudah%20melakukan%20pembayaran%20dengan%20ID%20transaksi:%20" class="btn-action btn-paid" id="paidBtn" target="_blank">
+                            <a href="#" class="btn-action btn-paid" id="paidBtn" target="_blank">
                                 <i class="fab fa-whatsapp"></i>
                                 <span>Saya Sudah Bayar</span>
                             </a>
