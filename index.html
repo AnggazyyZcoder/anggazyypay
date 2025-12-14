@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="https://c.termai.cc/i102/B2B.jpg" type="image/jpeg">
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -222,15 +224,16 @@
                             <div class="qris-result" id="qrisResult">
                                 <h4>QRIS Pembayaran</h4>
                                 <div class="qris-code-container">
-                                    <img id="qrisImage" src="" alt="QR Code">
+                                    <canvas id="qrisCanvas" width="250" height="250"></canvas>
                                 </div>
-                                <p class="transaction-id">
-                                    ID Transaksi: <span id="transactionId"></span>
+                                <p class="transaction-info">
+                                    Nominal: <strong id="qrisNominal">Rp 10.000</strong><br>
+                                    ID Transaksi: <span id="transactionId">TRX-123456789</span>
                                     <button class="copy-btn small" id="copyTrxId">
                                         <i class="far fa-copy"></i>
                                     </button>
                                 </p>
-                                <p class="expiry-info" id="expiryInfo"></p>
+                                <p class="expiry-info" id="expiryInfo">Kedaluwarsa dalam: 5:00 menit</p>
                                 
                                 <div class="qris-actions">
                                     <button class="action-btn" id="downloadQRIS">
